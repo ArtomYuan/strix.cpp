@@ -467,6 +467,51 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
     qkv_mixed = ggml_transpose(ctx0, qkv_mixed);
     cb(qkv_mixed, "qkv_mixed_transposed", il);
 
+    // a batch shorter than the conv window (single-token decode, graph reservation) cannot
+    //   form the trailing (k-1) rows on its own; keep the concatenating path for those
+    if (cparams.n_rs_seq > 0 || qkv_mixed->ne[0] < conv_kernel_size - 1) {
+        ggml_tensor * ci = ggml_concat(ctx0, conv_states, qkv_mixed, 0);
+        cb(ci, "conv_input", il);
+
+        const int64_t row_count = (conv_kernel_size - 1) * conv_channels;
+        const size_t  row_size  = ggml_row_size(conv_states_all->type, row_count);
+
+        if (cparams.n_rs_seq == 0) {
+            const int64_t s_idx = ci->ne[0] - conv_states->ne[0];
+
+            ggml_tensor * last = ggml_view_3d(ctx0, ci,
+                    conv_kernel_size - 1, conv_channels, n_seqs,
+                    ci->nb[1], ci->nb[2], ggml_row_size(ci->type, s_idx));
+
+            ggml_tensor * upd = ggml_view_2d(ctx0, conv_states_all,
+                    row_count, n_seqs, conv_states_all->nb[1],
+                    (kv_head) * row_size);
+
+            ggml_build_forward_expand(gf, ggml_cpy(ctx0, last, upd));
+        } else {
+            const int64_t K = (int64_t) cparams.n_rs_seq + 1;
+
+            for (int64_t t = 1; t <= K; ++t) {
+                const int64_t s_idx  = std::max<int64_t>(0, ci->ne[0] - conv_states->ne[0] - K + t);
+                const int64_t s_slot = K - t;
+
+                ggml_tensor * last = ggml_view_3d(ctx0, ci,
+                        conv_kernel_size - 1, conv_channels, n_seqs,
+                        ci->nb[1], ci->nb[2], ggml_row_size(ci->type, s_idx));
+
+                ggml_tensor * upd = ggml_view_2d(ctx0, conv_states_all,
+                        row_count, n_seqs, conv_states_all->nb[1],
+                        (s_slot * mem_size + kv_head) * row_size);
+
+                ggml_build_forward_expand(gf, ggml_cpy(ctx0, last, upd));
+            }
+        }
+
+        ggml_tensor * out = ggml_ssm_conv(ctx0, ci, conv_kernel);
+        cb(out, "conv_out", il);
+        return out;
+    }
+
     // convolution directly over [state | new tokens], no concatenation needed
     ggml_tensor * conv_input = ggml_ssm_conv_state(ctx0, qkv_mixed, conv_kernel, conv_states);
     cb(conv_input, "conv_input", il);
@@ -503,21 +548,15 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
 
         const int64_t K = (int64_t) cparams.n_rs_seq + 1;
 
-        // a reserve-only batch can be shorter than the conv window; the snapshot views would
-        // run past the tensor and there is nothing meaningful to write back yet
-        if (qkv_mixed->ne[0] < conv_kernel_size - 1) {
-            return conv_input;
-        }
-
         for (int64_t t = 1; t <= K; ++t) {
             const int64_t s_idx  = std::max<int64_t>(0, qkv_mixed->ne[0] - (conv_kernel_size - 1) - K + t);
             const int64_t s_slot = K - t;
 
             ggml_tensor * conv_state_last =
-                ggml_view_3d(ctx0, qkv_mixed,
+                ggml_transpose(ctx0, ggml_view_3d(ctx0, qkv_mixed,
                         conv_channels, conv_kernel_size - 1, n_seqs,
                         qkv_mixed->nb[0], qkv_mixed->nb[2],
-                        s_idx * qkv_mixed->nb[0]);
+                        s_idx * qkv_mixed->nb[0]));
 
             ggml_tensor * conv_state_update =
                 ggml_view_2d(ctx0,
