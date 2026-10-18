@@ -19,6 +19,10 @@
 
 - **SSM convolution: the per-layer, per-ubatch concat is gone**: `build_conv_state()` used to concatenate the conv state with the current tokens via `ggml_concat` before every convolution. A pp512 kernel profile showed `concat_cont` at 793 launches and **888.8 / 1375 ms (64.6%)** of kernel time — the most expensive step in the prefill chain, and pure copying. New operator `GGML_OP_SSM_CONV_STATE` consumes the state as a separate input; the old single-input path is kept. Back-to-back A/B: pp512 **704.5 → 745.4 t/s (+5.8%)**, pp2048 **715.6 → 750.6 t/s (+4.9%)**; greedy output is byte-identical to the previous build and `SSM_CONV` is **63/63**. See section 4 of `docs/development/kernel-optimization.en.md`.
 
+### Fixes
+
+- **Conv-state write-back layout**: the state view was [channels, k-1] while the state buffer is [k-1, channels], so the copy wrote a transposed state and generation degraded into repetition after a dozen tokens. With the missing transpose added the greedy output is byte-identical to the pre-change build. Commit 2386dd725.
+
 ### Tests
 
 - `test-backend-ops`: added MUL_MAT perf cases for the Qwen3.8-27B projection shapes (`17408×2048×5120`, `5120×2048×17408`, `6144×2048×5120`, `17408×512×5120`, `17408×1×5120`), each for `Q4_0_ROCMFP4_FAST` and F16.
