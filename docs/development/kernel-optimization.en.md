@@ -316,7 +316,7 @@ LD_LIBRARY_PATH=build/bin:/opt/rocm/core-10.1/lib \
 
 ---
 
-## 6. MTP speculative decoding: give the verification batch back its old path (v2026.10.19)
+## 6. MTP speculative decoding: give the verification batch back its old path (v2026.10.18.1)
 
 **Problem.** The conv-state op from section 4 splits the convolution history out of the input, on the assumption that a batch carries the full `k-1` window. MTP breaks that assumption: its verification batches hold only 1..4 tokens, and the rollback snapshots reach back *before* the batch into the saved state. With `--spec-type draft-mtp` the engine ran, reported a 78.8% draft acceptance rate, and produced collapsed output (` Paris the capital of France is Paris. Paris.`), 0.015 similar to the greedy baseline.
 

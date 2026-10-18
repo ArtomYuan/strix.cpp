@@ -316,7 +316,7 @@ LD_LIBRARY_PATH=build/bin:/opt/rocm/core-10.1/lib \
 
 ---
 
-## 6. MTP 投机解码：把验证批次还给旧路径（v2026.10.19）
+## 6. MTP 投机解码：把验证批次还给旧路径（v2026.10.18.1）
 
 **问题**。第 4 节的 conv-state 算子把卷积历史从输入里拆出去，前提是"这一批 token 自带完整的 `k-1` 窗口"。MTP 投机解码不满足这个前提：它的验证批只有 1~4 个 token，而且回滚快照要取到**批次之前**的状态行。开启 `--spec-type draft-mtp` 后表现为：能跑，草稿接受率 78.8%，但输出塌缩（` Paris the capital of France is Paris. Paris.`），与贪心基线相似度 0.015。
 

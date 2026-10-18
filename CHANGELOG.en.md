@@ -2,7 +2,7 @@
 
 [简体中文](CHANGELOG.md)
 
-## [Unreleased]
+## [v2026.10.18.1] (2026-10-18)
 
 ### Added
 
