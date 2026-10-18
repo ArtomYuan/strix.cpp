@@ -263,6 +263,57 @@ build/bin/llama-bench -m <27B Q4_0_ROCMFP4_FAST.gguf> -p 512,2048 -n 0 -r 3
 
 - Commits: `ggml: add SSM_CONV_STATE (API + CPU forward)`, `CUDA: support a separate conv state in SSM_CONV`, `tests: cover SSM_CONV with a separate conv state`, `models: convolve directly from the conv state, drop the per-layer concat`.
 
+## 5. The fp8 family's K tile: correct, but the hardware ceiling is in the way (v2026.10.18)
+
+### 5.1 Problem
+
+ROCmFP4 gained +90.6% kernel throughput from a 512-long K tile. The fp8 family (`Q8/Q6/Q3/Q2_0_ROCMFPX`) is still pinned at 256 and should have repeated that gain, yet it measures only 19.99-25.33 TFLOPS against FP4's 51.71 — a factor of two.
+
+### 5.2 Investigation
+
+1. **Baseline** (27B shape `17408×2048×5120`): q8 25.33, q2 23.91, q6 20.82, q3 19.99 TFLOPS; FP4 51.71, f16 32.79.
+2. **Bandwidth accounting**: q8 needs 14.4 ms for that shape and reads only 89 MB of weights -> **6.2 GB/s** against a 234 GB/s ceiling. **It is nowhere near bandwidth-bound.**
+3. **Code review**: four places hard-code K=256 — the fp8 loader, the dp4a tile-size macro, the dot-product loop and the activation-tile halves in the kernel body. All four were parameterized and a 512 configuration then **passed the numeric gate (`rocmfpx` 61/61)**.
+4. **Measurements** (same machine, back-to-back):
+
+   | Config | 17408×2048×5120 | 5120×2048×17408 | 6144×2048×5120 |
+   |:--|--:|--:|--:|
+   | I=128, K=256 (baseline) | **25.33** | **23.36** | **24.45** |
+   | I=96, K=512 | 23.47 | 21.29 | 23.82 |
+   | I=64, K=512 | 23.09 | 18.07 | 22.92 |
+
+5. **Ceiling probe**: removing the per-element scaling (`C.x[l]*dA*dB`) entirely leaves the matrix core alone at 25.67 TF — 1.3% above baseline. **Scaling is not the bottleneck.**
+6. **Hardware check** (AMD GPUOpen, RDNA3 WMMA): FLOPS/clk/CU — FP16 512, BF16 512, **IU8 512**, **IU4 1024**.
+
+### 5.3 Root cause
+
+**This chip's matrix core runs 4-bit integers at twice the 8-bit rate.** Measured 51.71 / 25.33 = 2.04 against the hardware 1024 / 512 = 2. The fp8 path uses iu8, so 25 TF is that path's ceiling, not an implementation defect.
+
+A secondary structural limit: 8-bit data takes one byte per K value (4-bit takes half), so at K=512 the fp8 M tile can only reach 96 rows inside 64 KB of LDS (FP4 reaches 128). Losing the M tile cancels the K gain — which is why 512 measures slower than 256 above.
+
+### 5.4 Verdict and rejected items
+
+- **Rejected**: K=512 for the fp8 family. Numerically correct (61/61) but slower, and the limit is the hardware.
+- **Rejected**: rewriting the kernel to keep weights out of shared memory (a planned 2-3 day change) — the ceiling probe shows scaling accounts for 1.3%, so the rewrite cannot break the iu8 hardware limit.
+- **Kept**: the K parameterization of `mmq_get_dp4a_tile_x_sizes` / `ggml_cuda_mmq_get_sram_stride` (commit `a3eb67f67`), behaviour-identical at K=256, as groundwork for any future K-tile experiment.
+- **Note**: `gfx1151` has no FP8 WMMA input form (`v_wmma_*_fp8_fp8` arrived with RDNA4/gfx1201); RDNA3.5 matrix cores only take f16/bf16/iu8/iu4.
+
+### 5.5 Reproduction
+
+```bash
+# fp8 baselines on the 27B projection shapes
+LD_LIBRARY_PATH=build/bin:/opt/rocm/core-10.1/lib \
+  build/bin/test-backend-ops perf -o MUL_MAT | grep q8_0_rocmfpx
+# numeric gate
+LD_LIBRARY_PATH=build/bin:/opt/rocm/core-10.1/lib \
+  build/bin/test-backend-ops test -o MUL_MAT -p rocmfpx
+```
+
+### 5.6 Deliverables
+
+- Code: `a3eb67f67` (K tile parameterization, neutral), `a379d3950` (fp8 baselines).
+- This rejection record.
+
 ---
 
 ## Appendix: entry structure (follow for future kernel-level changes)

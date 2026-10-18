@@ -263,6 +263,57 @@ build/bin/llama-bench -m <27B Q4_0_ROCMFP4_FAST.gguf> -p 512,2048 -n 0 -r 3
 
 - 提交：`ggml: add SSM_CONV_STATE (API + CPU forward)`、`CUDA: support a separate conv state in SSM_CONV`、`tests: cover SSM_CONV with a separate conv state`、`models: convolve directly from the conv state, drop the per-layer concat`。
 
+## 5. fp8 族的 K 分块：做到了正确，但撞上硬件天花板（v2026.10.18）
+
+### 5.1 问题
+
+ROCmFP4 接上 512 的 K 分块后拿到 +90.6% 的内核吞吐，fp8 族（`Q8/Q6/Q3/Q2_0_ROCMFPX`）同样挂在 256 上，理应复制同一收益。但同族实测只有 19.99~25.33 TFLOPS，而 FP4 是 51.71——差距正好两倍。
+
+### 5.2 定位过程与证据
+
+1. **基准**（27B 主形状 `17408×2048×5120`）：q8 25.33、q2 23.91、q6 20.82、q3 19.99 TFLOPS；对照 FP4 51.71、f16 32.79。
+2. **带宽核算**：q8 跑完该形状需 14.4 ms，权重仅 89 MB → 实际带宽 **6.2 GB/s**，而芯片上限 234 GB/s。**根本不是带宽受限。**
+3. **结构审查**：fp8 的 loader、dp4a 尺寸宏、点积循环、内核主体的激活瓦片装载，四处都把 K 写死为 256。逐一参数化后，512 配置在数值上**跑通（`rocmfpx` 61/61）**。
+4. **实测对比**（同机同刻）：
+
+   | 配置 | 17408×2048×5120 | 5120×2048×17408 | 6144×2048×5120 |
+   |:--|--:|--:|--:|
+   | I=128，K=256（基线） | **25.33** | **23.36** | **24.45** |
+   | I=96，K=512 | 23.47 | 21.29 | 23.82 |
+   | I=64，K=512 | 23.09 | 18.07 | 22.92 |
+
+5. **上限探针**：把内层的逐元素缩放（`C.x[l]*dA*dB`）整体去掉，只测矩阵核 → 25.67 TF，仅比基线快 1.3%。**缩放不是瓶颈。**
+6. **硬件查证**（AMD GPUOpen，RDNA3 WMMA 数据）：每时钟每 CU 的 FLOPS —— FP16 512、BF16 512、**IU8 512**、**IU4 1024**。
+
+### 5.3 根因
+
+**这颗芯片的矩阵核对 4 位整数的吞吐是 8 位的两倍。** 实测 51.71 ÷ 25.33 = 2.04，与硬件 1024 ÷ 512 = 2 吻合。fp8 走 iu8 路径，25 TF 已经是该路径的天花板，不是代码缺陷。
+
+附带的结构约束：8 位数据每个 K 占 1 字节（4 位只占 0.5），同样 64 KB 共享内存下，K=512 时 fp8 的 M 瓦片最多只能到 96 行（FP4 可以到 128）。M 瓦片的损失抵消了 K 翻倍的收益——这也是上表中 512 比 256 更慢的原因。
+
+### 5.4 结论与否决项
+
+- **否决**：fp8 族的 K=512 不采用。数值正确（61/61）但更慢，且瓶颈在硬件而非实现。
+- **否决**：权重不进共享内存的重写（原计划 2–3 天）——上限探针显示内层缩放只占 1.3%，重写无法突破 iu8 的硬件上限。
+- **保留**：`mmq_get_dp4a_tile_x_sizes` / `ggml_cuda_mmq_get_sram_stride` 的 K 参数化（提交 `a3eb67f67`），K=256 行为不变，作为后续任何 K 瓦片实验的基础设施。
+- **附记**：`gfx1151` 的 WMMA 没有 FP8 输入形式（`v_wmma_*_fp8_fp8` 是 RDNA4/gfx1201 才加入的），RDNA3.5 的矩阵核只接受 f16/bf16/iu8/iu4。
+
+### 5.5 复现命令
+
+```bash
+# fp8 基准（27B 投影形状）
+LD_LIBRARY_PATH=build/bin:/opt/rocm/core-10.1/lib \
+  build/bin/test-backend-ops perf -o MUL_MAT | grep q8_0_rocmfpx
+# 数值门
+LD_LIBRARY_PATH=build/bin:/opt/rocm/core-10.1/lib \
+  build/bin/test-backend-ops test -o MUL_MAT -p rocmfpx
+```
+
+### 5.6 交付
+
+- 代码：`a3eb67f67`（K 瓦片参数化，中性）、`a379d3950`（fp8 基准用例）。
+- 否决记录：本节。
+
 ---
 
 ## 附：条目结构（后续内核级改动沿用）
