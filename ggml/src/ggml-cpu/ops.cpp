@@ -9963,12 +9963,13 @@ static void ggml_compute_forward_ssm_conv_f32(
         ggml_tensor * dst) {
     const ggml_tensor * src0 = dst->src[0]; // conv_x
     const ggml_tensor * src1 = dst->src[1]; // conv1d.weight
+    const ggml_tensor * src2 = dst->src[2]; // optional conv state {d_conv - 1, d_inner, n_seqs}
 
     const int ith = params->ith;
     const int nth = params->nth;
 
     const int nc  = src1->ne[0]; // d_conv
-    const int ncs = src0->ne[0]; // d_conv - 1 + n_t
+    const int ncs = src0->ne[0]; // d_conv - 1 + n_t, or n_t when a state is supplied
     const int nr  = src0->ne[1]; // d_inner
     const int n_t =  dst->ne[1]; // tokens per sequence
     const int n_s =  dst->ne[2]; // number of sequences in the batch
@@ -9977,6 +9978,13 @@ static void ggml_compute_forward_ssm_conv_f32(
     GGML_ASSERT(src0->nb[0] == sizeof(float));
     GGML_ASSERT(src1->nb[0] == sizeof(float));
     GGML_ASSERT(src0->nb[1] == src0->ne[0]*sizeof(float));
+    if (src2 != nullptr) {
+        GGML_ASSERT(src0->ne[0] == n_t);
+        GGML_ASSERT(src2->ne[0] == nc - 1);
+        GGML_ASSERT(src2->ne[1] == nr);
+        GGML_ASSERT(src2->ne[2] == n_s);
+        GGML_ASSERT(src2->nb[0] == sizeof(float));
+    }
 
     // rows per thread
     const int dr = (nr + nth - 1)/nth;
@@ -9988,13 +9996,12 @@ static void ggml_compute_forward_ssm_conv_f32(
 
     for (int i3 = 0; i3 < n_s; ++i3) {
         for (int i2 = 0; i2 < n_t; ++i2) {
-            // {d_conv - 1 + n_t, d_inner, n_seqs}
-            // sliding window
-            const float * s = (const float *) ((const char *) src0->data + ir0*(src0->nb[1]) + i2*(src0->nb[0]) + i3*(src0->nb[2])); // {d_conv, d_inner, n_s}
-            const float * c = (const float *) ((const char *) src1->data + ir0*(src1->nb[1])); // {d_conv, d_inner}
+            // sliding window over the virtual concatenation [state (d_conv - 1 rows) | x (n_t rows)]
+            const int win = i2; // first row of the window in the virtual input
+
+            const float * c0 = (const float *) ((const char *) src1->data + ir0*(src1->nb[1])); // {d_conv, d_inner}
             float * x = (float *) ((char *) dst->data + ir0*(dst->nb[0]) + i2*(dst->nb[1]) + i3*(dst->nb[2])); // {d_inner, n_t, n_s}
 
-            // TODO: transpose the output for smaller strides for big batches?
             // d_inner
             for (int i1 = 0; i1 < ir; ++i1) {
                 // rowwise dot product
@@ -10003,7 +10010,15 @@ static void ggml_compute_forward_ssm_conv_f32(
 
                 // d_conv
                 for (int i0 = 0; i0 < nc; ++i0) {
-                    sumf += s[i0 + i1*ncs] * c[i0 + i1*nc];
+                    const int row = win + i0;
+                    float v;
+                    if (src2 != nullptr && row < nc - 1) {
+                        v = ((const float *) ((const char *) src2->data + (ir0 + i1)*(src2->nb[1]) + row*(src2->nb[0]) + i3*(src2->nb[2])))[0];
+                    } else {
+                        const int xr = src2 != nullptr ? row - (nc - 1) : row;
+                        v = ((const float *) ((const char *) src0->data + (ir0 + i1)*(src0->nb[1]) + xr*(src0->nb[0]) + i3*(src0->nb[2])))[0];
+                    }
+                    sumf += v * c0[i0 + i1*nc];
                 }
                 x[i1] = sumf;
             }

@@ -2554,6 +2554,17 @@ extern "C" {
             struct ggml_tensor  * sx,
             struct ggml_tensor  * c);
 
+    // same as ggml_ssm_conv but the leading (d_conv - 1) rows of the convolution window come from
+    // a separate state tensor instead of being concatenated into sx:
+    //   sx    : {n_t, d_inner, n_seqs}          (new tokens only)
+    //   c     : {d_conv, d_inner}
+    //   state : {d_conv - 1, d_inner, n_seqs}   (may be NULL -> all-zero history)
+    GGML_API struct ggml_tensor * ggml_ssm_conv_state(
+            struct ggml_context * ctx,
+            struct ggml_tensor  * sx,
+            struct ggml_tensor  * c,
+            struct ggml_tensor  * state);
+
     GGML_API struct ggml_tensor * ggml_ssm_scan(
             struct ggml_context * ctx,
             struct ggml_tensor  * s,
