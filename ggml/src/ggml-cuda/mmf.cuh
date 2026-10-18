@@ -3,6 +3,7 @@
 #include "mma.cuh"
 #include "common.cuh"
 #include "convert.cuh"
+#include "mmid.cuh"
 
 using namespace ggml_cuda_mma;
 
@@ -38,6 +39,7 @@ struct mmf_ids_data {
     const int32_t * ids_dst_compact = nullptr;
     const int32_t * expert_bounds_dev = nullptr;
     int n_experts = 0;
+    int n_cols = 0; // Total number of columns over all experts.
     int sis1 = 0;
 };
 
@@ -130,163 +132,169 @@ static __global__ void mul_mat_f(
     [[maybe_unused]] int * slot_map = (int *) shmem_base;
     char * compute_base = has_ids ? (shmem_base + GGML_PAD(cols_per_block, 16) * sizeof(int)) : shmem_base;
 
-    tile_C C[ntA][ntB];
+    // A token can use the same expert more than once, the block then computes its rank-th use in iteration rank.
+    for (int rank = 0; rank < (has_ids ? nchannels_dst : 1); ++rank) {
+        tile_C C[ntA][ntB];
 
-    T * tile_xy = (T *) compute_base + threadIdx.y*(tile_A::I * tile_k_padded);
+        T * tile_xy = (T *) compute_base + threadIdx.y*(tile_A::I * tile_k_padded);
 
-    if constexpr (has_ids) {
-        int found = 0;
+        if constexpr (has_ids) {
+            int found = 0;
 
+            for (int j0 = 0; j0 < cols_per_block; j0 += nwarps) {
+                const int j = j0 + threadIdx.y;
+
+                if (threadIdx.x == 0) {
+                    slot_map[j] = -1;
+                }
+                ggml_cuda_syncwarp();
+
+                if (col_base + j >= ncols_dst_total) {
+                    continue;
+                }
+
+                const int32_t * __restrict__ id_row = ids + j*stride_row_id;
+
+                int n_match_prev = 0;
+                for (int k0 = 0; k0 < nchannels_dst; k0 += warp_size) {
+                    const int k = k0 + threadIdx.x;
+                    const int match = k < nchannels_dst && id_row[k*stride_col_id] == expert_idx;
+                    const int n_match = n_match_prev + warp_prefix_inclusive_sum<int, warp_size>(match);
+
+                    if (match && n_match - 1 == rank) {
+                        slot_map[j] = k;
+                        found = 1;
+                    }
+                    n_match_prev = __shfl_sync(0xFFFFFFFF, n_match, warp_size - 1, warp_size);
+                }
+            }
+
+            if (!__syncthreads_or(found)) {
+                return;
+            }
+        }
+
+
+        for (int col = threadIdx.y*warp_size + threadIdx.x; col < ncols; col += nwarps*warp_size) {
+            tile_A A[ntA][warp_size / tile_A::J];
+#pragma unroll
+            for (int itA = 0; itA < ntA; ++itA) {
+                ggml_cuda_syncwarp();
+#pragma unroll
+                for (int i = 0; i < tile_A::I; ++i) {
+                    tile_xy[i*tile_k_padded + threadIdx.x] = x[(itA*tile_A::I + i)*stride_row  + col];
+                }
+                ggml_cuda_syncwarp();
+#pragma unroll
+                for (int k0 = 0; k0 < warp_size; k0 += tile_A::J) {
+                    load_ldmatrix(A[itA][k0/tile_A::J], tile_xy + k0, tile_k_padded);
+                }
+            }
+
+#pragma unroll
+            for (int itB = 0; itB < ntB; ++itB) {
+                ggml_cuda_syncwarp();
+                if constexpr (std::is_same_v<T, float>) {
+#pragma unroll
+                    for (int j0 = 0; j0 < tile_B::I; ++j0) {
+                        const int j = j0 + itB*tile_B::I;
+
+                        if constexpr (!has_ids) {
+                            tile_xy[j0*tile_k_padded + threadIdx.x] = j < cols_per_block ? y[j*stride_col_y + col] : 0.0f;
+                        } else {
+                            const bool valid = j < cols_per_block && (col_base + j) < ncols_dst_total && slot_map[j] >= 0;
+                            tile_xy[j0*tile_k_padded + threadIdx.x] = valid ? y[slot_map[j]*stride_channel_y + j*stride_col_y + col] : 0.0f;
+                        }
+                    }
+                } else if constexpr (std::is_same_v<T, half2> || std::is_same_v<T, nv_bfloat162>) {
+#pragma unroll
+                    for (int j0 = 0; j0 < tile_B::I; ++j0) {
+                        const int j = j0 + itB*tile_B::I;
+
+                        if constexpr (!has_ids) {
+                            const float2 tmp = j < cols_per_block ? y2[j*stride_col_y + col] : make_float2(0.0f, 0.0f);
+                            tile_xy[j0*tile_k_padded + threadIdx.x] = ggml_cuda_cast<T>(tmp);
+                        } else {
+                            const bool valid = j < cols_per_block && (col_base + j) < ncols_dst_total && slot_map[j] >= 0;
+                            float2 tmp = valid ? *(const float2*) &y[slot_map[j]*stride_channel_y + 2*(j*stride_col_y + col)] : make_float2(0.0f, 0.0f);
+                            tile_xy[j0*tile_k_padded + threadIdx.x] = ggml_cuda_cast<T>(tmp);
+                        }
+                    }
+                } else {
+                    static_assert(std::is_same_v<T, void>, "unsupported type");
+                }
+                ggml_cuda_syncwarp();
+#pragma unroll
+                for (int k0 = 0; k0 < warp_size; k0 += tile_B::J) {
+                    tile_B B;
+                    load_ldmatrix(B, tile_xy + k0, tile_k_padded);
+#pragma unroll
+                    for (int itA = 0; itA < ntA; ++itA) {
+                        mma(C[itA][itB], A[itA][k0/tile_B::J], B);
+                    }
+                }
+            }
+        }
+
+        float * buf_iw = (float *) compute_base;
+        constexpr int kiw = nwarps*rows_per_block + mmf_get_padding();
+
+        if (nwarps > 1) {
+            __syncthreads();
+        } else {
+            ggml_cuda_syncwarp();
+        }
+#pragma unroll
+        for (int itB = 0; itB < ntB; ++itB) {
+#pragma unroll
+            for (int itA = 0; itA < ntA; ++itA) {
+#pragma unroll
+                for (int l = 0; l < tile_C::ne; ++l) {
+                    const int i = threadIdx.y*rows_per_block + itA*tile_C::I + tile_C::get_i(l);
+                    const int j = itB*tile_C::J + tile_C::get_j(l);
+                    buf_iw[j*kiw + i] = C[itA][itB].x[l];
+                }
+            }
+        }
+
+        if (nwarps > 1) {
+            __syncthreads();
+        } else {
+            ggml_cuda_syncwarp();
+        }
+
+#pragma unroll
         for (int j0 = 0; j0 < cols_per_block; j0 += nwarps) {
             const int j = j0 + threadIdx.y;
 
-            if (threadIdx.x == 0) {
-                slot_map[j] = -1;
-            }
-            ggml_cuda_syncwarp();
-
-            if (col_base + j >= ncols_dst_total) {
-                continue;
+            if (j0 + nwarps > cols_per_block && j >= cols_per_block) {
+                break; // Not return, the other warps still need this warp for the next rank.
             }
 
-            const int32_t * __restrict__ id_row = ids + j*stride_row_id;
+            float sum[rows_per_block/warp_size] = {0.0f};
+            static_assert((rows_per_block % warp_size) == 0, "rows_per_block must be a multiple of warp_size.");
+#pragma unroll
+            for (int i0 = 0; i0 < nwarps*rows_per_block; i0 += rows_per_block) {
+#pragma unroll
+                for (int i1 = 0; i1 < sizeof(sum)/sizeof(sum[0]); ++i1) {
+                    const int i = i0 + i1*warp_size + threadIdx.x;
 
-            for (int k = threadIdx.x; k < nchannels_dst; k += warp_size) {
-                int match = id_row[k*stride_col_id] == expert_idx;
-
-                if (match) {
-                    slot_map[j] = k;
-                    found = 1;
-                    break;
+                    sum[i1] += buf_iw[j*kiw + i];
                 }
             }
-        }
 
-        if (!__syncthreads_or(found)) {
-            return;
-        }
-    }
-
-
-    for (int col = threadIdx.y*warp_size + threadIdx.x; col < ncols; col += nwarps*warp_size) {
-        tile_A A[ntA][warp_size / tile_A::J];
-#pragma unroll
-        for (int itA = 0; itA < ntA; ++itA) {
-            ggml_cuda_syncwarp();
-#pragma unroll
-            for (int i = 0; i < tile_A::I; ++i) {
-                tile_xy[i*tile_k_padded + threadIdx.x] = x[(itA*tile_A::I + i)*stride_row  + col];
-            }
-            ggml_cuda_syncwarp();
-#pragma unroll
-            for (int k0 = 0; k0 < warp_size; k0 += tile_A::J) {
-                load_ldmatrix(A[itA][k0/tile_A::J], tile_xy + k0, tile_k_padded);
-            }
-        }
-
-#pragma unroll
-        for (int itB = 0; itB < ntB; ++itB) {
-            ggml_cuda_syncwarp();
-            if constexpr (std::is_same_v<T, float>) {
-#pragma unroll
-                for (int j0 = 0; j0 < tile_B::I; ++j0) {
-                    const int j = j0 + itB*tile_B::I;
-
-                    if constexpr (!has_ids) {
-                        tile_xy[j0*tile_k_padded + threadIdx.x] = j < cols_per_block ? y[j*stride_col_y + col] : 0.0f;
-                    } else {
-                        const bool valid = j < cols_per_block && (col_base + j) < ncols_dst_total && slot_map[j] >= 0;
-                        tile_xy[j0*tile_k_padded + threadIdx.x] = valid ? y[slot_map[j]*stride_channel_y + j*stride_col_y + col] : 0.0f;
-                    }
-                }
-            } else if constexpr (std::is_same_v<T, half2> || std::is_same_v<T, nv_bfloat162>) {
-#pragma unroll
-                for (int j0 = 0; j0 < tile_B::I; ++j0) {
-                    const int j = j0 + itB*tile_B::I;
-
-                    if constexpr (!has_ids) {
-                        const float2 tmp = j < cols_per_block ? y2[j*stride_col_y + col] : make_float2(0.0f, 0.0f);
-                        tile_xy[j0*tile_k_padded + threadIdx.x] = ggml_cuda_cast<T>(tmp);
-                    } else {
-                        const bool valid = j < cols_per_block && (col_base + j) < ncols_dst_total && slot_map[j] >= 0;
-                        float2 tmp = valid ? *(const float2*) &y[slot_map[j]*stride_channel_y + 2*(j*stride_col_y + col)] : make_float2(0.0f, 0.0f);
-                        tile_xy[j0*tile_k_padded + threadIdx.x] = ggml_cuda_cast<T>(tmp);
-                    }
-                }
-            } else {
-                static_assert(std::is_same_v<T, void>, "unsupported type");
-            }
-            ggml_cuda_syncwarp();
-#pragma unroll
-            for (int k0 = 0; k0 < warp_size; k0 += tile_B::J) {
-                tile_B B;
-                load_ldmatrix(B, tile_xy + k0, tile_k_padded);
-#pragma unroll
-                for (int itA = 0; itA < ntA; ++itA) {
-                    mma(C[itA][itB], A[itA][k0/tile_B::J], B);
-                }
-            }
-        }
-    }
-
-    float * buf_iw = (float *) compute_base;
-    constexpr int kiw = nwarps*rows_per_block + mmf_get_padding();
-
-    if (nwarps > 1) {
-        __syncthreads();
-    } else {
-        ggml_cuda_syncwarp();
-    }
-#pragma unroll
-    for (int itB = 0; itB < ntB; ++itB) {
-#pragma unroll
-        for (int itA = 0; itA < ntA; ++itA) {
-#pragma unroll
-            for (int l = 0; l < tile_C::ne; ++l) {
-                const int i = threadIdx.y*rows_per_block + itA*tile_C::I + tile_C::get_i(l);
-                const int j = itB*tile_C::J + tile_C::get_j(l);
-                buf_iw[j*kiw + i] = C[itA][itB].x[l];
-            }
-        }
-    }
-
-    if (nwarps > 1) {
-        __syncthreads();
-    } else {
-        ggml_cuda_syncwarp();
-    }
-
-#pragma unroll
-    for (int j0 = 0; j0 < cols_per_block; j0 += nwarps) {
-        const int j = j0 + threadIdx.y;
-
-        if (j0 + nwarps > cols_per_block && j >= cols_per_block) {
-            return;
-        }
-
-        float sum[rows_per_block/warp_size] = {0.0f};
-        static_assert((rows_per_block % warp_size) == 0, "rows_per_block must be a multiple of warp_size.");
-#pragma unroll
-        for (int i0 = 0; i0 < nwarps*rows_per_block; i0 += rows_per_block) {
-#pragma unroll
-            for (int i1 = 0; i1 < sizeof(sum)/sizeof(sum[0]); ++i1) {
-                const int i = i0 + i1*warp_size + threadIdx.x;
-
-                sum[i1] += buf_iw[j*kiw + i];
-            }
-        }
-
-        if constexpr (!has_ids) {
-#pragma unroll
-            for (int i0 = 0; i0 < sizeof(sum)/sizeof(sum[0]); ++i0) {
-                dst[j*stride_col_dst + row0 + i0*warp_size + threadIdx.x] = sum[i0];
-            }
-        } else {
-            const int slot = (j < cols_per_block) ? slot_map[j] : -1;
-            if (slot >= 0 && (col_base + j) < ncols_dst_total) {
+            if constexpr (!has_ids) {
 #pragma unroll
                 for (int i0 = 0; i0 < sizeof(sum)/sizeof(sum[0]); ++i0) {
-                    dst[slot*stride_channel_dst + j*stride_col_dst + row0 + i0*warp_size + threadIdx.x] = sum[i0];
+                    dst[j*stride_col_dst + row0 + i0*warp_size + threadIdx.x] = sum[i0];
+                }
+            } else {
+                const int slot = (j < cols_per_block) ? slot_map[j] : -1;
+                if (slot >= 0 && (col_base + j) < ncols_dst_total) {
+#pragma unroll
+                    for (int i0 = 0; i0 < sizeof(sum)/sizeof(sum[0]); ++i0) {
+                        dst[slot*stride_channel_dst + j*stride_col_dst + row0 + i0*warp_size + threadIdx.x] = sum[i0];
+                    }
                 }
             }
         }
@@ -312,7 +320,7 @@ static __global__ void mul_mat_f_ids(
         const int ncols, const int ncols_dst_total, const int nchannels_dst, const int stride_row, const int stride_col_y, const int stride_col_dst,
         const int channel_ratio, const int stride_channel_x, const int stride_channel_y, const int stride_channel_dst,
         const int sample_ratio, const int stride_sample_x, const int stride_sample_y, const int stride_sample_dst,
-        const uint3 sis1_fd, const uint3 nch_fd) {
+        const uint3 sis1_fd, const uint3 nch_fd, const int n_experts) {
 // TODO: handle this in a consistent and simpler way after AMD MFMA support has been added
 #if defined(VOLTA_MMA_AVAILABLE) || defined(TURING_MMA_AVAILABLE) || defined(AMD_WMMA_AVAILABLE) || defined(AMD_MFMA_AVAILABLE)
 #if defined(AMD_WMMA_AVAILABLE)
@@ -351,16 +359,14 @@ static __global__ void mul_mat_f_ids(
 
     const int row0        = blockIdx.x * rows_per_block;
 
-    const int expert_idx = blockIdx.y;
+    int expert_idx;
+    int tile_idx;
+    if (!mm_ids_find_tile<cols_per_block>(expert_bounds, n_experts, blockIdx.y, expert_idx, tile_idx)) {
+        return;
+    }
     const int expert_start = expert_bounds[expert_idx];
     const int expert_end   = expert_bounds[expert_idx + 1];
     const int ncols_expert = expert_end - expert_start;
-
-    const int tiles_for_expert = (ncols_expert + cols_per_block - 1) / cols_per_block;
-    const int tile_idx = blockIdx.z;
-    if (tile_idx >= tiles_for_expert) {
-        return;
-    }
 
     const int col_base = tile_idx * cols_per_block;
 
@@ -583,7 +589,7 @@ static __global__ void mul_mat_f_ids(
     GGML_UNUSED_VARS(x, y, ids_src_compact, ids_dst_compact, expert_bounds, dst,
         ncols, ncols_dst_total, nchannels_dst, stride_row, stride_col_y, stride_col_dst,
         channel_ratio, stride_channel_x, stride_channel_y, stride_channel_dst,
-        sample_ratio, stride_sample_x, stride_sample_y, stride_sample_dst, sis1_fd, nch_fd);
+        sample_ratio, stride_sample_x, stride_sample_y, stride_sample_dst, sis1_fd, nch_fd, n_experts);
     NO_DEVICE_CODE;
 #endif // defined(VOLTA_MMA_AVAILABLE) || defined(TURING_MMA_AVAILABLE) || defined(AMD_WMMA_AVAILABLE) || defined(AMD_MFMA_AVAILABLE)
 }
@@ -603,11 +609,11 @@ static inline void mul_mat_f_switch_ids(
     // Use the compact-ids kernel only for larger tiles; for small ncols_dst (< 16)
     // we prefer the normal mul_mat_f path with has_ids=true.
     if (has_ids_data && ncols_dst > 16) {
-        const int max_tiles = (int) ((ncols_dst + cols_per_block - 1) / cols_per_block);
-        if (max_tiles == 0) {
-            return;
-        }
-        dim3 block_nums_ids(block_nums.x, ids_data->n_experts, max_tiles);
+        // Upper bound for the number of packed tiles, each expert can have at most one partial tile:
+        const int64_t ntiles = (ids_data->n_cols + cols_per_block - 1) / cols_per_block
+            + std::min<int64_t>(ids_data->n_experts, ids_data->n_cols);
+        GGML_ASSERT(ntiles <= 65535);
+        dim3 block_nums_ids(block_nums.x, ntiles, 1);
 
         const uint3 sis1_fd = ids_data->sis1 > 0 ? init_fastdiv_values((uint32_t) ids_data->sis1) : make_uint3(0, 0, 1);
         const uint3 nch_fd  = init_fastdiv_values((uint32_t) nchannels_dst);
@@ -617,7 +623,7 @@ static inline void mul_mat_f_switch_ids(
             ncols_x, ncols_dst, nchannels_dst, stride_row, stride_col_y, stride_col_dst,
             channel_ratio, stride_channel_x, stride_channel_y, stride_channel_dst,
             sample_ratio, stride_sample_x, stride_sample_y, stride_sample_dst,
-            sis1_fd, nch_fd);
+            sis1_fd, nch_fd, ids_data->n_experts);
     } else if (ids) {
         const int64_t col_tiles = (ncols_dst + cols_per_block - 1) / cols_per_block;
         dim3 block_nums_ids = block_nums;
