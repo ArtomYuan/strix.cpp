@@ -503,6 +503,12 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
 
         const int64_t K = (int64_t) cparams.n_rs_seq + 1;
 
+        // a reserve-only batch can be shorter than the conv window; the snapshot views would
+        // run past the tensor and there is nothing meaningful to write back yet
+        if (qkv_mixed->ne[0] < conv_kernel_size - 1) {
+            return conv_input;
+        }
+
         for (int64_t t = 1; t <= K; ++t) {
             const int64_t s_idx  = std::max<int64_t>(0, qkv_mixed->ne[0] - (conv_kernel_size - 1) - K + t);
             const int64_t s_slot = K - t;
