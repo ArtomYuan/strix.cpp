@@ -4542,6 +4542,31 @@ struct test_ssm_conv : public test_case {
     }
 };
 
+// GGML_OP_SSM_CONV with a separate conv state instead of a pre-concatenated input
+struct test_ssm_conv_state : public test_case {
+    const ggml_type type;
+    const std::array<int64_t, 4> ne_a; // n_t, d_inner, n_s, 1
+    const std::array<int64_t, 4> ne_b; // d_conv, d_inner, 1, 1
+
+    std::string vars() override {
+        return VARS_TO_STR3(type, ne_a, ne_b);
+    }
+
+    test_ssm_conv_state(ggml_type type = GGML_TYPE_F32,
+            std::array<int64_t, 4> ne_a = {10, 10, 1, 1},
+            std::array<int64_t, 4> ne_b = {3, 3, 1, 1})
+        : type(type), ne_a(ne_a), ne_b(ne_b) {}
+
+    ggml_tensor * build_graph(ggml_context * ctx) override {
+        ggml_tensor * a = ggml_new_tensor(ctx, type, 4, ne_a.data());
+        ggml_tensor * b = ggml_new_tensor(ctx, type, 4, ne_b.data());
+        const int64_t ne_s[3] = { ne_b[0] - 1, ne_a[1], ne_a[2] };
+        ggml_tensor * st = ggml_new_tensor(ctx, type, 3, ne_s);
+        ggml_tensor * out = ggml_ssm_conv_state(ctx, a, b, st);
+        return out;
+    }
+};
+
 // GGML_OP_SSM_CONV + GGML_OP_ADD (channel-wise bias, optional) + GGML_OP_UNARY(SILU) (fused operation)
 struct test_ssm_conv_bias_silu : public test_case {
     const ggml_type type;
@@ -10557,6 +10582,9 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
             // long token (n_t > 32, exercises the long_token kernel path)
             test_cases.emplace_back(new test_ssm_conv(GGML_TYPE_F32, {d_conv - 1 + 64, d_inner, 1, 1}, {d_conv, d_inner, 1, 1}));
             test_cases.emplace_back(new test_ssm_conv(GGML_TYPE_F32, {d_conv - 1 + 64, d_inner, 4, 1}, {d_conv, d_inner, 1, 1}));
+            // separate conv state (no pre-concatenated input)
+            test_cases.emplace_back(new test_ssm_conv_state(GGML_TYPE_F32, {64, d_inner, 1, 1}, {d_conv, d_inner, 1, 1}));
+            test_cases.emplace_back(new test_ssm_conv_state(GGML_TYPE_F32, {17, d_inner, 3, 1}, {d_conv, d_inner, 1, 1}));
         }
     }
 
