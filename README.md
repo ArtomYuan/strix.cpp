@@ -57,6 +57,14 @@ build/bin/llama-server -m <模型.gguf> --port 8080
 
 OpenAI 兼容 API（默认 `/v1`）。视觉/定位模型加 `--special`；纯文本模型不需要。
 
+模型自带 `nextn` 层时，可以开投机解码（目前只验证了 Qwen3.8-27B）：
+
+```bash
+build/bin/llama-server -m <模型.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
+```
+
+同提示、同 seed 下，输出与不开启时**逐字一致**，解码 14.0 → 37.9 t/s。草稿深度 8 及以上会让接受率塌到 0.6%，只剩开销，不要用。详见[内核优化记录第 6 节](docs/development/kernel-optimization.md)。
+
 ### 作为服务常驻
 
 ```ini

@@ -2,6 +2,28 @@
 
 [简体中文](CHANGELOG.md)
 
+## [Unreleased]
+
+### Added
+
+- **MTP speculative decoding works**: the model's built-in `nextn` layer is finally usable (`--spec-type draft-mtp`, off by default). With the same prompt, seed and greedy decoding, the output is **byte-identical** to the non-speculative run, while generation goes from 14.0 to **37.9 t/s (2.71x)**.
+
+  | Draft depth `--spec-draft-n-max` | Generation t/s | vs baseline | Identical output |
+  |--:|--:|--:|:--|
+  | off | 14.0 | 1.00x | — |
+  | 3 (default) | 34.2 | 2.44x | yes |
+  | 5 | 37.1 | 2.65x | yes |
+  | 6 (recommended) | 37.9 | 2.71x | yes |
+  | 7 | 34.8 | 2.49x | yes |
+  | 8 | 8.4 | 0.60x | no |
+
+  At depth 8 and beyond the draft acceptance rate collapses to **0.63%** (6 accepted out of 958 drafted): pure overhead, and the output no longer matches the baseline. **Do not use it.** Single-stream decode used to sit 13% below the bandwidth ceiling; it now clears that ceiling, because speculation reads the weights once and emits several tokens. See section 6 of `docs/development/kernel-optimization.md`.
+
+### Fixed
+
+- **Short batches and the rollback path in the conv-state op**: the new op assumed every batch carries the full `k-1` convolution window, but MTP verification batches hold only 1..4 tokens and their rollback snapshots reach back into the saved state. The op is now dispatched by batch: plain prefill uses it, while single-token decode, graph reservation and speculative rollback keep the original concatenating path. MTP output is byte-identical to the baseline again and pp2048 holds at 756.8 t/s. Commit 3175dd92e.
+
+## [v2026.10.18] (2026-10-18)
 ## [v2026.10.18] (2026-10-18)
 
 ### Performance

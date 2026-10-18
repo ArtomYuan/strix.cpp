@@ -316,6 +316,39 @@ LD_LIBRARY_PATH=build/bin:/opt/rocm/core-10.1/lib \
 
 ---
 
+## 6. MTP speculative decoding: give the verification batch back its old path (v2026.10.19)
+
+**Problem.** The conv-state op from section 4 splits the convolution history out of the input, on the assumption that a batch carries the full `k-1` window. MTP breaks that assumption: its verification batches hold only 1..4 tokens, and the rollback snapshots reach back *before* the batch into the saved state. With `--spec-type draft-mtp` the engine ran, reported a 78.8% draft acceptance rate, and produced collapsed output (` Paris the capital of France is Paris. Paris.`), 0.015 similar to the greedy baseline.
+
+**How it was pinned down.** First revert the whole SSM change to the commit before it (`a67aaba31`) and rerun the same comparison: MTP output was **byte-identical** to the baseline at 13.86 → 23.77 t/s. So the change broke the speculative path, not the engine. Two attempted fixes were wrong: removing the `-(k-1)` term from the rollback offset (a coordinate conversion; removing it crashed graph reservation) and "skip the write-back for short batches" (decode state stops updating and generation degrades). The real cause is that a rollback window reaches back before the batch, and those rows simply do not exist in the new tensor.
+
+**Fix.** Dispatch by batch shape instead of patching the formula:
+
+| Case | Path |
+|:--|:--|
+| Plain prefill (`n_rs_seq == 0`, batch >= `k-1`) | the new `GGML_OP_SSM_CONV_STATE` |
+| Single-token decode, graph reservation (batch < `k-1`) | the original `ggml_concat` + `ggml_ssm_conv` |
+| MTP rollback (`n_rs_seq > 0`) | the original `ggml_concat` + `ggml_ssm_conv` |
+
+**Result.** Same prompt, same seed, greedy: output is **byte-identical**, generation goes 14.0 → 34.3 t/s at the default depth; pp2048 holds at 756.8 t/s and `SSM_CONV` passes on 2/2 backends.
+
+**Tuning** (server, same prompt and seed, output checked at every step):
+
+| Draft depth `--spec-draft-n-max` | Generation t/s | vs baseline | Identical output |
+|--:|--:|--:|:--|
+| off | 14.0 | 1.00x | — |
+| 3 (default) | 34.2 | 2.44x | yes |
+| 4 | 34.8 | 2.48x | yes |
+| 5 | 37.1 | 2.65x | yes |
+| 6 (recommended) | 37.9 | 2.71x | yes |
+| 7 | 34.8 | 2.49x | yes |
+| 8 | 8.4 | 0.60x | no |
+| 10 | 7.7 | 0.55x | no |
+
+**Limit.** At depth 8 and beyond the acceptance rate collapses to **0.63%** (6 accepted out of 958), leaving only overhead, and the output stops matching the baseline. This `nextn` head was trained for very few steps, so deeper drafts are noise. The recommended value is 6; 7 works but is slower.
+
+**Why this is worth recording.** Single-stream decode was already at 87% of the bandwidth ceiling (16.1 tok/s); further kernel work could squeeze at most 7% more. Speculation changes the direction: read the weights once, emit several tokens, and therefore clear the single-stream ceiling. It is also the first payoff of the "cut the bytes read per decoded token" methodology inside our own engine.
+
 ## Appendix: entry structure (follow for future kernel-level changes)
 
 1. Problem (with baseline numbers and applicable conditions)
