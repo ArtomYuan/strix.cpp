@@ -447,6 +447,7 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
         llm_graph_input_rs * inp,
         ggml_tensor *        conv_states_all,
         ggml_tensor *        qkv_mixed,
+        ggml_tensor *        conv_kernel,
         int64_t              conv_kernel_size,
         int64_t              conv_channels,
         int                  il) {
@@ -466,7 +467,8 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
     qkv_mixed = ggml_transpose(ctx0, qkv_mixed);
     cb(qkv_mixed, "qkv_mixed_transposed", il);
 
-    ggml_tensor * conv_input = ggml_concat(ctx0, conv_states, qkv_mixed, 0);
+    // convolution directly over [state | new tokens], no concatenation needed
+    ggml_tensor * conv_input = ggml_ssm_conv_state(ctx0, qkv_mixed, conv_kernel, conv_states);
     cb(conv_input, "conv_input", il);
 
     const int64_t row_count = (conv_kernel_size - 1) * conv_channels;
@@ -474,14 +476,15 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
     const size_t row_size  = ggml_row_size(conv_states_all->type, row_count);
 
     if (cparams.n_rs_seq == 0) {
-        const int64_t s_idx  = conv_input->ne[0] - conv_states->ne[0];
+        const int64_t s_idx  = qkv_mixed->ne[0] - (conv_kernel_size - 1);
         const int64_t s_slot = 0;
 
+        // qkv_mixed is transposed: dim0 = tokens, so token stride is nb[0]
         ggml_tensor * conv_state_last =
-            ggml_view_3d(ctx0, conv_input,
-                    conv_kernel_size - 1, conv_channels, n_seqs,
-                    conv_input->nb[1], conv_input->nb[2],
-                    ggml_row_size(conv_input->type, s_idx));
+            ggml_view_3d(ctx0, qkv_mixed,
+                    conv_channels, conv_kernel_size - 1, n_seqs,
+                    qkv_mixed->nb[0], qkv_mixed->nb[2],
+                    s_idx * qkv_mixed->nb[0]);
         cb(conv_state_last, "conv_state_last", il);
 
         ggml_tensor * conv_state_update =
@@ -499,14 +502,14 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
         const int64_t K = (int64_t) cparams.n_rs_seq + 1;
 
         for (int64_t t = 1; t <= K; ++t) {
-            const int64_t s_idx  = std::max<int64_t>(0, conv_input->ne[0] - conv_states->ne[0] - K + t);
+            const int64_t s_idx  = std::max<int64_t>(0, qkv_mixed->ne[0] - (conv_kernel_size - 1) - K + t);
             const int64_t s_slot = K - t;
 
             ggml_tensor * conv_state_last =
-                ggml_view_3d(ctx0, conv_input,
-                        conv_kernel_size - 1, conv_channels, n_seqs,
-                        conv_input->nb[1], conv_input->nb[2],
-                        ggml_row_size(conv_input->type, s_idx));
+                ggml_view_3d(ctx0, qkv_mixed,
+                        conv_channels, conv_kernel_size - 1, n_seqs,
+                        qkv_mixed->nb[0], qkv_mixed->nb[2],
+                        s_idx * qkv_mixed->nb[0]);
 
             ggml_tensor * conv_state_update =
                 ggml_view_2d(ctx0,

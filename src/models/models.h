@@ -82,6 +82,7 @@ struct llm_build_delta_net_base : public llm_graph_context {
             llm_graph_input_rs * inp,
             ggml_tensor *        conv_states_all,
             ggml_tensor *        qkv_mixed,
+            ggml_tensor *        conv_kernel,
             int64_t              conv_kernel_size,
             int64_t              conv_channels,
             int                  il);
