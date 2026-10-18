@@ -12311,6 +12311,13 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_perf() {
         test_cases.emplace_back(new test_mul_mat(ta, GGML_TYPE_F32, 17408, 1, 5120, {1, 1}, {1, 1}));     // ffn gate/up, decode GEMV
     }
 
+    // [xaihi-fp8-scan] ROCmFPX family baseline on the 27B projection shapes
+    for (ggml_type ta : {GGML_TYPE_Q8_0_ROCMFPX, GGML_TYPE_Q6_0_ROCMFPX, GGML_TYPE_Q3_0_ROCMFPX, GGML_TYPE_Q2_0_ROCMFPX}) {
+        test_cases.emplace_back(new test_mul_mat(ta, GGML_TYPE_F32, 17408, 2048, 5120, {1, 1}, {1, 1}));
+        test_cases.emplace_back(new test_mul_mat(ta, GGML_TYPE_F32, 5120, 2048, 17408, {1, 1}, {1, 1}));
+        test_cases.emplace_back(new test_mul_mat(ta, GGML_TYPE_F32, 6144, 2048, 5120, {1, 1}, {1, 1}));
+    }
+
     // qwen3-30b-a3b
     for (int bs : {1, 4, 8, 32, 64, 128, 256, 512}) {
         for (ggml_type type_a : {GGML_TYPE_F32, GGML_TYPE_F16, GGML_TYPE_Q4_0, GGML_TYPE_Q8_0, GGML_TYPE_Q4_K, GGML_TYPE_Q6_K, GGML_TYPE_IQ2_XS, GGML_TYPE_IQ4_XS}) {
