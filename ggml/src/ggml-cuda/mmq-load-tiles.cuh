@@ -1922,12 +1922,16 @@ template <ggml_type type, int J, bool fallback> static __device__ __forceinline_
     constexpr int nwarps      = ggml_cuda_mmq_get_nthreads(type, J, fallback, GGML_PREC_Q8) / warp_size;
     constexpr int I           = ggml_cuda_mmq_get_I(type, J, fallback, GGML_PREC_Q8);
     constexpr int sram_stride = ggml_cuda_mmq_get_sram_stride(type, J, fallback, GGML_PREC_Q8);
+    constexpr int ITER_K      = ggml_cuda_mmq_get_K_vram(type, J, fallback, GGML_PREC_Q8);
+    constexpr int K_QS_INTS   = ITER_K / 4;                 // 4 fp8 values per int
+    constexpr int K_GROUPS    = ITER_K / 256;                // one 256-value group per tile row
+    constexpr int K_BLKS      = ITER_K / QK_ROCMFP8;        // blocks per tile row
 
 #if defined(AMD_MFMA_AVAILABLE) || defined(TURING_MMA_AVAILABLE) || defined(AMD_WMMA_AVAILABLE)
     int   * x_qs = (int   *)  x_tile;
-    float * x_df = (float *) (x_qs + MMQ_TILE_NE_K*2);
+    float * x_df = (float *) (x_qs + K_QS_INTS);
 #else
-    constexpr tile_x_sizes txs = mmq_get_dp4a_tile_x_sizes(GGML_TYPE_Q8_0_ROCMFPX, I);
+    constexpr tile_x_sizes txs = mmq_get_dp4a_tile_x_sizes(GGML_TYPE_Q8_0_ROCMFPX, I, ITER_K);
     int   * x_qs = (int   *)  x_tile;
     float * x_df = (float *) (x_qs + txs.qs);
 #endif // defined(AMD_MFMA_AVAILABLE) || defined(TURING_MMA_AVAILABLE) || defined(AMD_WMMA_AVAILABLE)
@@ -1951,16 +1955,22 @@ template <ggml_type type, int J, bool fallback> static __device__ __forceinline_
 
         const int qs0 = get_int_b2((const void *) bxi->qs, kqsx);
 
+        constexpr int blk_per_group = MMQ_TILE_NE_K/QI_ROCMFP8;   // 4 blocks per 32-int half
+#pragma unroll
+        for (int g = 0; g < K_GROUPS; ++g) {
+            const block_rocmfp8 * bg = bxi + g*2*blk_per_group;
 #if defined(AMD_MFMA_AVAILABLE) || defined(TURING_MMA_AVAILABLE) || defined(AMD_WMMA_AVAILABLE)
-        x_qs[i*sram_stride + 0             + txi] = qs0;
-        x_qs[i*sram_stride + MMQ_TILE_NE_K + txi] = get_int_b2((const void *) (bxi + MMQ_TILE_NE_K/QI_ROCMFP8)->qs, kqsx);
+            x_qs[i*sram_stride + g*2*MMQ_TILE_NE_K + 0             + txi] = get_int_b2((const void *) bg->qs, kqsx);
+            x_qs[i*sram_stride + g*2*MMQ_TILE_NE_K + MMQ_TILE_NE_K + txi] = get_int_b2((const void *) (bg + blk_per_group)->qs, kqsx);
 #else
-        x_qs[i*(2*MMQ_TILE_NE_K + 1) + 0             + txi] = qs0;
-        x_qs[i*(2*MMQ_TILE_NE_K + 1) + MMQ_TILE_NE_K + txi] = get_int_b2((const void *) (bxi + MMQ_TILE_NE_K/QI_ROCMFP8)->qs, kqsx);
+            x_qs[i*(2*K_QS_INTS + 1) + g*2*MMQ_TILE_NE_K + 0             + txi] = get_int_b2((const void *) bg->qs, kqsx);
+            x_qs[i*(2*K_QS_INTS + 1) + g*2*MMQ_TILE_NE_K + MMQ_TILE_NE_K + txi] = get_int_b2((const void *) (bg + blk_per_group)->qs, kqsx);
 #endif // defined(AMD_MFMA_AVAILABLE) || defined(TURING_MMA_AVAILABLE) || defined(AMD_WMMA_AVAILABLE)
+        }
+        (void) qs0;
     }
 
-    constexpr int blocks_per_tile_x_row = 2*MMQ_TILE_NE_K / QI_ROCMFP8;
+    constexpr int blocks_per_tile_x_row = K_BLKS;
     constexpr int rows_per_warp = warp_size / blocks_per_tile_x_row;
     const int kbxd = threadIdx.x % blocks_per_tile_x_row;
 

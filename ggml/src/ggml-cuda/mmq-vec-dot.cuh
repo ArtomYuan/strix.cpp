@@ -113,14 +113,16 @@ template <ggml_type type, int J, bool fallback> static __device__ __forceinline_
     constexpr int nwarps    = ggml_cuda_mmq_get_nthreads(type, J, fallback, GGML_PREC_Q8) / warp_size;
     constexpr int I         = ggml_cuda_mmq_get_I(type, J, fallback, GGML_PREC_Q8);
 
-    constexpr tile_x_sizes txs = mmq_get_dp4a_tile_x_sizes(GGML_TYPE_Q8_0, I);
+    constexpr int ITER_K = ggml_cuda_mmq_get_K_vram(type, J, fallback, GGML_PREC_Q8);
+    constexpr int K_EFF  = type == GGML_TYPE_Q8_0_ROCMFPX ? ITER_K : MMQ_ITER_K;
+    constexpr tile_x_sizes txs = mmq_get_dp4a_tile_x_sizes(GGML_TYPE_Q8_0, I, K_EFF);
     const int   * x_qs = (const int   *) x;
     const float * x_df = (const float *) x_qs + txs.qs;
     const int   * y_qs = (const int   *) y + 4;
     const float * y_df = (const float *) y;
 
 // #pragma unroll
-    for (int k01 = 0; k01 < MMQ_TILE_NE_K; k01 += VDR_Q8_0_Q8_1_MMQ) {
+    for (int k01 = 0; k01 < K_EFF/8; k01 += VDR_Q8_0_Q8_1_MMQ) {
         const int k0 = k00 + k01;
 
 #pragma unroll
@@ -132,8 +134,8 @@ template <ggml_type type, int J, bool fallback> static __device__ __forceinline_
                 const int i = i0 + threadIdx.x;
 
                 sum[j0/nwarps*I/warp_size + i0/warp_size] += vec_dot_q8_0_q8_1_impl<float, VDR_Q8_0_Q8_1_MMQ>
-                    (&x_qs[i*(2*MMQ_TILE_NE_K + 1) + k0], &y_qs[j*MMQ_TILE_Y_K + k0 % MMQ_TILE_NE_K],
-                     x_df[i*(2*MMQ_TILE_NE_K/QI8_0) + i/(QI8_0/2) + k0/QI8_0], y_df[j*MMQ_TILE_Y_K + (k0/QI8_1) % (MMQ_TILE_NE_K/QI8_1)]);
+                    (&x_qs[i*(K_EFF/4 + 1) + k0], &y_qs[j*MMQ_TILE_Y_K + k0 % MMQ_TILE_NE_K],
+                     x_df[i*(K_EFF/32) + i/(QI8_0/2) + k0/QI8_0], y_df[j*MMQ_TILE_Y_K + (k0/QI8_1) % (MMQ_TILE_NE_K/QI8_1)]);
             }
         }
     }

@@ -392,11 +392,17 @@ static constexpr __device__ int ggml_cuda_mmq_get_rows_per_warp(ggml_type type, 
 #define MMQ_DP4A_TXS_Q8_1    tile_x_sizes{I*MMQ_TILE_NE_K*2 + I, I*MMQ_TILE_NE_K*2/QI8_1 + I/(QI8_1/2), 0}
 #define MMQ_DP4A_TXS_Q2_K    tile_x_sizes{I*MMQ_TILE_NE_K*2 + I, I*MMQ_TILE_NE_K         + I,           0}
 #define MMQ_DP4A_TXS_Q3_K    tile_x_sizes{I*MMQ_TILE_NE_K*2 + I, I,                                     I*MMQ_TILE_NE_K/8 + I/8}
+
+// K-parameterized dp4a tiles for the ROCmFPX family. For K == MMQ_ITER_K these
+// reduce to MMQ_DP4A_TXS_Q8_0 / _Q8_0_16 exactly; the extra factor only kicks in
+// when a config asks for a 512-long K tile.
+#define MMQ_DP4A_TXS_Q8_0_K(K)    tile_x_sizes{I*((K)/4 + 1), I*((K)/32) + I/(QI8_0/2), 0}
+#define MMQ_DP4A_TXS_Q8_0_16_K(K) tile_x_sizes{I*((K)/4 + 1), I*((K)/16) + I/(QI8_0/4), 0}
 #define MMQ_DP4A_TXS_Q4_K    tile_x_sizes{I*MMQ_TILE_NE_K   + I, I*MMQ_TILE_NE_K/QI4_K,                 I*MMQ_TILE_NE_K/8 + I/8}
 #define MMQ_DP4A_TXS_Q5_K    tile_x_sizes{I*MMQ_TILE_NE_K*2 + I, I*MMQ_TILE_NE_K/QI5_K   + I/QI5_K,     I*MMQ_TILE_NE_K/8 + I/8}
 #define MMQ_DP4A_TXS_Q6_K    tile_x_sizes{I*MMQ_TILE_NE_K*2 + I, I*MMQ_TILE_NE_K/QI6_K   + I/QI6_K,     I*MMQ_TILE_NE_K/8 + I/8}
 
-static constexpr __host__ __device__ tile_x_sizes mmq_get_dp4a_tile_x_sizes(ggml_type type, int I) {
+static constexpr __host__ __device__ tile_x_sizes mmq_get_dp4a_tile_x_sizes(ggml_type type, int I, int K = MMQ_ITER_K) {
     switch (type) {
         case GGML_TYPE_Q1_0:    return MMQ_DP4A_TXS_Q8_0;
         case GGML_TYPE_Q2_0:    return MMQ_DP4A_TXS_Q8_0;
@@ -410,8 +416,8 @@ static constexpr __host__ __device__ tile_x_sizes mmq_get_dp4a_tile_x_sizes(ggml
         case GGML_TYPE_Q4_0_ROCMFP4_FAST: return MMQ_DP4A_TXS_Q8_1;
         case GGML_TYPE_Q3_0_ROCMFPX:
         case GGML_TYPE_Q2_0_ROCMFPX:
-        case GGML_TYPE_Q6_0_ROCMFPX:      return MMQ_DP4A_TXS_Q8_0_16;
-        case GGML_TYPE_Q8_0_ROCMFPX:      return MMQ_DP4A_TXS_Q8_0;
+        case GGML_TYPE_Q6_0_ROCMFPX:      return K == MMQ_ITER_K ? MMQ_DP4A_TXS_Q8_0_16 : MMQ_DP4A_TXS_Q8_0_16_K(K);
+        case GGML_TYPE_Q8_0_ROCMFPX:      return K == MMQ_ITER_K ? MMQ_DP4A_TXS_Q8_0    : MMQ_DP4A_TXS_Q8_0_K(K);
         case GGML_TYPE_NVFP4:   return MMQ_DP4A_TXS_Q8_0_16;
         case GGML_TYPE_Q2_K:    return MMQ_DP4A_TXS_Q2_K;
         case GGML_TYPE_Q3_K:    return MMQ_DP4A_TXS_Q3_K;
