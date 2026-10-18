@@ -210,6 +210,59 @@ build/bin/llama-bench -m <27B Q4_0_ROCMFP4_FAST.gguf> -p 2048 -n 0 -r 3
 - Code: `mmq-config-rdna3-5.cuh` (12 entries) + `tests/test-backend-ops.cpp` (new perf cases).
 - Numeric gate and end-to-end A/B data in `~/bench/gemm-e2e-1017/`, `~/bench/mmq-scan2-1017.log`.
 
+## 4. SSM convolution: drop the per-layer, per-ubatch concat (v2026.10.18)
+
+### 4.1 Problem
+
+A prefill kernel profile (pp512, `rocprofv3`, 1375 ms of kernel time) showed a single kernel, `concat_cont`, at **888.8 ms / 64.6%** across 793 launches — more than GEMM, attention and quantization combined. It does no arithmetic; it is a pure copy.
+
+### 4.2 Investigation
+
+1. **Kernel profile** (`rocprofv3` → sqlite → aggregate by kernel): `concat_cont` 793 / 888.8 ms / 64.6%; `mul_mat_vec_q` 145.2 ms / 10.6%; `quantize` ~123 ms / 9.0%; `k_get_rows` 97.8 ms / 7.1%; `k_bin_bcast` 80.5 ms / 5.9%.
+2. **Call site**: `build_conv_state()` in `src/models/delta-net-base.cpp` runs `ggml_concat(ctx0, conv_states, qkv_mixed, 0)` once per SSM layer per ubatch. 793 ≈ 50 SSM layers × 8 ubatches × 2.
+3. **How gufo does it**: take the convolution window over the virtual concatenation of state and new tokens, never materialising it.
+
+### 4.3 Root cause
+
+`ggml_ssm_conv` takes a single input, and the window straddles the historical state and the current tokens, so the caller has to copy both into one contiguous buffer first. The copy carries no new information — the operator interface simply cannot express the split.
+
+### 4.4 Fix
+
+New operator `GGML_OP_SSM_CONV_STATE`: `conv_x` (current tokens) and `conv_state` (the previous d_conv-1 tokens) are passed separately, and the window `i2..i2+nc-1` reads across both tensors. The old single-input `GGML_OP_SSM_CONV` keeps its semantics.
+
+- API/CPU: `ggml/include/ggml.h`, `ggml/src/ggml.c`, `ggml/src/ggml-cpu/ops.cpp`
+- CUDA: `ggml/src/ggml-cuda/ssm-conv.cu` (both the register-ring and the shared-memory kernels index with the real tensor strides: channels via `nb[1]`, rows and sequences via `nb[0]` and `nb[2]`)
+- Graph: `build_conv_state()` no longer concatenates; the state write-back view gets a transpose so its element order matches the state buffer; `qwen3next` / `qwen35` / `qwen35moe` no longer run the convolution twice.
+
+### 4.5 Verification
+
+- **Operator tests**: `test-backend-ops test -o SSM_CONV` **63/63** (45 existing + 18 new cases with a separate state, including n_t=64 long sequences and n_s=3 multi-sequence batches).
+- **End-to-end identity**: the same greedy prompt produces byte-identical text before and after: "The capital of France is Paris. / The capital of Germany is Berlin. / The capital of Italy is Rome."
+- **Bisectable**: all four commits build with `cmake --build`, including the intermediate ones.
+
+### 4.6 Effect (same machine, model and protocol, back-to-back, r=3)
+
+| Case (Qwen3.8-27B, Q4_0_ROCMFP4_FAST) | concat path | state path | Change |
+|:--|--:|--:|--:|
+| prefill pp512 | 704.50 t/s | **745.40 t/s** | **+5.8%** |
+| prefill pp2048 | 715.57 t/s | **750.57 t/s** | **+4.9%** |
+
+> The 64.6% is a *share of kernel time*; the concat itself is a bandwidth-bound copy, so removing it does not translate one-for-one into end-to-end gains. ~5% is this path's real exchange rate.
+
+### 4.7 Reproduction
+
+```bash
+# operator tests (including the new cases with a separate state)
+LD_LIBRARY_PATH=build/bin:/opt/rocm/core-10.1/lib \
+  build/bin/test-backend-ops test -o SSM_CONV
+# end to end
+build/bin/llama-bench -m <27B Q4_0_ROCMFP4_FAST.gguf> -p 512,2048 -n 0 -r 3
+```
+
+### 4.8 Deliverables
+
+- Commits: `ggml: add SSM_CONV_STATE (API + CPU forward)`, `CUDA: support a separate conv state in SSM_CONV`, `tests: cover SSM_CONV with a separate conv state`, `models: convolve directly from the conv state, drop the per-layer concat`.
+
 ---
 
 ## Appendix: entry structure (follow for future kernel-level changes)

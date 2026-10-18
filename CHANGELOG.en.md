@@ -17,6 +17,8 @@
 
   Numeric gates: `MUL_MAT -p rocmfp4` **24/24**, `-p rocmfpx` **61/61**; back-to-back A/B, same machine, model and protocol. The same change was **not** applied to the fp8 family (ROCmFPX): at K=512 its k=1024 cases fail numerically (ERR≈1.0) — the K tile is bound to the SRAM layout (256-element super-block), so that is a separate change. See `docs/development/kernel-optimization.en.md` section 3.
 
+- **SSM convolution: the per-layer, per-ubatch concat is gone**: `build_conv_state()` used to concatenate the conv state with the current tokens via `ggml_concat` before every convolution. A pp512 kernel profile showed `concat_cont` at 793 launches and **888.8 / 1375 ms (64.6%)** of kernel time — the most expensive step in the prefill chain, and pure copying. New operator `GGML_OP_SSM_CONV_STATE` consumes the state as a separate input; the old single-input path is kept. Back-to-back A/B: pp512 **704.5 → 745.4 t/s (+5.8%)**, pp2048 **715.6 → 750.6 t/s (+4.9%)**; greedy output is byte-identical to the previous build and `SSM_CONV` is **63/63**. See section 4 of `docs/development/kernel-optimization.en.md`.
+
 ### Tests
 
 - `test-backend-ops`: added MUL_MAT perf cases for the Qwen3.8-27B projection shapes (`17408×2048×5120`, `5120×2048×17408`, `6144×2048×5120`, `17408×512×5120`, `17408×1×5120`), each for `Q4_0_ROCMFP4_FAST` and F16.

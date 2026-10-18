@@ -210,6 +210,59 @@ build/bin/llama-bench -m <27B Q4_0_ROCMFP4_FAST.gguf> -p 2048 -n 0 -r 3
 - 代码：`mmq-config-rdna3-5.cuh`（12 条条目）+ `tests/test-backend-ops.cpp`（新增 perf 用例）。
 - 数值门、端到端 A/B 数据在 `~/bench/gemm-e2e-1017/`、`~/bench/mmq-scan2-1017.log`。
 
+## 4. SSM 卷积：去掉每层、每个 ubatch 的整块 concat（v2026.10.18）
+
+### 4.1 问题
+
+预填阶段的内核采样（pp512，`rocprofv3`，内核总时长 1375 ms）里，`concat_cont` 一个内核占 **888.8 ms / 64.6%**，调用 793 次——比 GEMM、注意力、量化加起来还多。这不是计算，是纯拷贝。
+
+### 4.2 定位过程与证据
+
+1. **内核采样**（`rocprofv3` → sqlite → 按内核名聚合）：`concat_cont` 793 次 / 888.8 ms / 64.6%；`mul_mat_vec_q` 145.2 ms / 10.6%；`quantize` ~123 ms / 9.0%；`k_get_rows` 97.8 ms / 7.1%；`k_bin_bcast` 80.5 ms / 5.9%。
+2. **调用点定位**：`src/models/delta-net-base.cpp` 的 `build_conv_state()` 每层 SSM、每个 ubatch 执行一次 `ggml_concat(ctx0, conv_states, qkv_mixed, 0)`。793 ≈ 50 个 SSM 层 × 8 个 ubatch × 2。
+3. **对照 gufo 的做法**：卷积直接在「状态 + 新 token」的虚拟拼接上取窗口，不物化拼接结果。
+
+### 4.3 根因
+
+`ggml_ssm_conv` 只有一个输入，卷积窗口跨在「历史状态」和「本批 token」之间，所以调用方必须先把两者拼成一块连续内存。拼接本身不产生任何新信息，纯属算子接口的表达力不足。
+
+### 4.4 修复
+
+新增算子 `GGML_OP_SSM_CONV_STATE`：`conv_x`（本批 token）与 `conv_state`（前 d_conv-1 个 token）分开传入，卷积窗口按 `i2..i2+nc-1` 跨两个张量取值；旧 `GGML_OP_SSM_CONV` 单输入语义原样保留。
+
+- API/CPU：`ggml/include/ggml.h`、`ggml/src/ggml.c`、`ggml/src/ggml-cpu/ops.cpp`
+- CUDA：`ggml/src/ggml-cuda/ssm-conv.cu`（寄存器环与共享内存两条内核都按张量真实步长索引：通道走 `nb[1]`、行/序列分别走 `nb[0]` 与 `nb[2]`）
+- 图：`src/models/delta-net-base.cpp` 不再 concat，状态回写视图补一次转置以匹配状态缓冲的元素序；`qwen3next` / `qwen35` / `qwen35moe` 三处下游不再重复卷积。
+
+### 4.5 验证链
+
+- **算子测试**：`test-backend-ops test -o SSM_CONV` **63/63**（45 条既有 + 18 条新增带 state 的用例，含 n_t=64 长序列与 n_s=3 多序列）。
+- **端到端一致性**：同一提示（贪心、关闭思考）在改动前后**逐字一致**：「The capital of France is Paris. / The capital of Germany is Berlin. / The capital of Italy is Rome.」。
+- **逐笔可编**：4 个提交各自 `cmake --build` 通过（含中途提交）。
+
+### 4.6 效果（同机同模型同协议背靠背，r=3）
+
+| 场景（Qwen3.8-27B，Q4_0_ROCMFP4_FAST） | concat 路径 | state 路径 | 变化 |
+|:--|--:|--:|--:|
+| 预填 pp512 | 704.50 t/s | **745.40 t/s** | **+5.8%** |
+| 预填 pp2048 | 715.57 t/s | **750.57 t/s** | **+4.9%** |
+
+> 内核占比 64.6% 是**时间占比**，而 concat 是带宽受限的纯拷贝，去掉后不会等额转化为整网收益——5% 左右是这条路径的实际汇率。
+
+### 4.7 复现命令
+
+```bash
+# 算子测试（含新增的带 state 用例）
+LD_LIBRARY_PATH=build/bin:/opt/rocm/core-10.1/lib \
+  build/bin/test-backend-ops test -o SSM_CONV
+# 整网 A/B
+build/bin/llama-bench -m <27B Q4_0_ROCMFP4_FAST.gguf> -p 512,2048 -n 0 -r 3
+```
+
+### 4.8 交付
+
+- 提交：`ggml: add SSM_CONV_STATE (API + CPU forward)`、`CUDA: support a separate conv state in SSM_CONV`、`tests: cover SSM_CONV with a separate conv state`、`models: convolve directly from the conv state, drop the per-layer concat`。
+
 ---
 
 ## 附：条目结构（后续内核级改动沿用）

@@ -17,6 +17,8 @@
 
   数值门 `MUL_MAT -p rocmfp4` **24/24**、`-p rocmfpx` **61/61**；同机同模型同协议背靠背 A/B。同一改动**未**套用到 fp8 族（ROCmFPX）——K=512 下其 k=1024 用例数值错误（ERR≈1.0），K 瓦片与 SRAM 布局（超块粒度 256）绑定，属独立改造。详见 `docs/development/kernel-optimization.md` 第 3 节。
 
+- **SSM 卷积：去掉每层、每个 ubatch 的整块 concat**：`build_conv_state()` 原本用 `ggml_concat` 把卷积状态与本批 token 拼成整块再卷积。pp512 内核采样显示 `concat_cont` 793 次调用、占内核时间 **888.8 / 1375 ms（64.6%）**，是整条预填链上最贵的一步，而且全是纯拷贝。新增算子 `GGML_OP_SSM_CONV_STATE`，状态作为独立输入直接参与卷积，旧单输入路径保留。背靠背 A/B：pp512 **704.5 → 745.4 t/s（+5.8%）**、pp2048 **715.6 → 750.6 t/s（+4.9%）**；贪心解码输出与改动前逐字一致，`SSM_CONV` **63/63**。详见 `docs/development/kernel-optimization.md` 第 4 节。
+
 ### 测试
 
 - `test-backend-ops` 新增 Qwen3.8-27B 投影形状的 MUL_MAT perf 用例（`17408×2048×5120`、`5120×2048×17408`、`6144×2048×5120`、`17408×512×5120`、`17408×1×5120`，各含 `Q4_0_ROCMFP4_FAST` 与 F16 两档）。
