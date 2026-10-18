@@ -480,11 +480,13 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
         const int64_t s_slot = 0;
 
         // qkv_mixed is transposed: dim0 = tokens, so token stride is nb[0]
+        // the view is [channels, k-1, n_seqs] because dim0 of a view must have stride == type size;
+        // transpose back to [k-1, channels, n_seqs] so the copy order matches the state buffer layout
         ggml_tensor * conv_state_last =
-            ggml_view_3d(ctx0, qkv_mixed,
+            ggml_transpose(ctx0, ggml_view_3d(ctx0, qkv_mixed,
                     conv_channels, conv_kernel_size - 1, n_seqs,
                     qkv_mixed->nb[0], qkv_mixed->nb[2],
-                    s_idx * qkv_mixed->nb[0]);
+                    s_idx * qkv_mixed->nb[0]));
         cb(conv_state_last, "conv_state_last", il);
 
         ggml_tensor * conv_state_update =
