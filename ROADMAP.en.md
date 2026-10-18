@@ -10,18 +10,6 @@ The roadmap lists work in progress, not commitments — scope and order may chan
 
 ## Next batch
 
-### MoE duplicate experts: fill the hole
-
-**Area: MoE path (MUL_MAT_ID)**
-
-Some models (Ornith and the like) route through experts. The same expert being selected more than once is a legal routing outcome, but today such input produces wrong numbers, and extreme shapes take the GPU down outright. Regular routing rarely hits it — but it has no guard either.
-
-- Fix the mmid duplicate-id path: the wrong values and the out-of-bounds access together
-- Add a `dup` numeric gate to the full test suite
-- Add nothing new on that path until it is all green
-
-> A rare error is still an error.
-
 ### The fp8 family's K tile: collect the money behind the gate
 
 **Area: ROCmFPX family (Q2/Q3/Q6/Q8)**
@@ -76,7 +64,7 @@ Decode is currently level with the previous version. gufo's 1.7× comes from KV 
 
 - **Production switch**: new lib `95f2ed` (K-tile build) → `~/llama-rocm/bin`, via full mirror + smoke test + rollback plan.
 - **Release**: whether to tag this change `v2026.10.18` and write a Release.
-- **What runs first**: MoE fix protects correctness, the fp8 family buys performance — the priority is the maintainer's call.
+- **What runs first**: the fp8 family for performance, or wiring work for fused quantization — the maintainer's call.
 
 ---
 
@@ -84,4 +72,3 @@ Decode is currently level with the previous version. gufo's 1.7× comes from KV 
 
 - Deep-context precision edge: beyond 32k tokens, f16-KV attention slowly drifts from the f32 reference (about 3e-3 at 131k); the same on upstream.
 - The fp8 family still runs K tile 256.
-- The MoE duplicate-expert defect is unfixed and disclosed in the README's known limitations.

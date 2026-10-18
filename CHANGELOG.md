@@ -45,6 +45,10 @@
 - 同步后 HIP/gfx1151 全量构建（llama-server / llama-quantize / llama-bench / test-backend-ops / llama-embedding，build 11666）绿。`test-backend-ops`：`MUL_MAT -p rocmfp4` **24/24**、`-p rocmfpx` **61/61**（含 `m=151669,n=16384,k=32` 的 2^31 溢出回归用例）、默认 `MUL_MAT` 全套 **2534/2534**（ROCm0 + CPU 双后端）。
 - 冒烟：`llama-bench` Qwen3-Embedding-0.6B BF16 pp32 **652.73 t/s** / tg8 **120.55 t/s**；embeddings 服务（18010）与 jina-reranker-v3.5（SWA + RANK，18011）`/health` 200 + 真实往返；生成（Qwen3.8-27B Q4_0_ROCMFP4_FAST，18012）200 + 一轮 chat completion；私有类型量化往返（BF16 → Q4_0_ROCMFP4_FAST，302 MB）后可加载，pp32 **1581 t/s** / tg8 **257 t/s**。GPU/CPU 数值对照（Qwen3-Embedding mean，raw 未归一化输出）：max|Δ| 81（分量量级 ~2e4，bf16 累积序差异级）。
 
+### 修复
+
+- **MUL_MAT_ID（MoE 路由）的重复专家缺陷**：同一专家被 top-k 选中多次时，`mul_mat_id` 会丢列或写错列，量化路径上表现为 `quantize_mmq_q8_1` 非法访存（GPU 故障挂起）。移植上游 `ggml-org/llama.cpp#26294`（含 `#30477`）：ids 压缩保持每 token 一条共享内存、重复槽位在写出时按前缀和展开；MMQ/MMF 改用打包瓦片映射寻址；主机回退路径不再在首个匹配处 break。本 fork 另有两处适配：`ntx <= 65535` 断言改为仅 CUDA 生效（ROCm 允许更大的网格），并重新适配到 ROCmFPX 的 MMQ/MMF 特化。验证：`MUL_MAT_ID` **953/953**（修复前为 GPU 故障挂起）、全量套件 **18781/18785**（4 个为既有 f16-KV 深水精度边缘，stock 同款）、`MUL_MAT` rocmfp4 24/24、rocmfpx 61/61；dense 端到端 pp2048 709.9 t/s（−1.5%，噪声带内）、pp16384 610.1（−0.6%）、tg256 不变。
+
 ## [v2026.9.24] (2026-09-24)
 
 ### 引擎

@@ -77,5 +77,4 @@ ExecStart=/path/to/engine/bin/llama-server --special -m /path/to/model.gguf --po
 
 ## Known limitations
 
-- **MUL_MAT_ID (MoE routing) with duplicate expert ids**: the `dup=1` cases (the same expert selected more than once) produce wrong values, and extreme shapes can fault the GPU; the baseline behaves the same (not introduced here, and real model routing normally avoids it).
 - **Deep-context precision edge**: beyond 32k tokens, f16-KV attention slowly drifts from the f32 reference (about 3e-3 at 131k). This is pre-existing llama.cpp behaviour (the same on upstream) and amounts to roughly a few tenths of a percent of model output — keep it in mind for very-long-context heavy workloads.

@@ -45,6 +45,10 @@
 - The post-sync HIP/gfx1151 build (llama-server / llama-quantize / llama-bench / test-backend-ops / llama-embedding, build 11666) is green. `test-backend-ops`: `MUL_MAT -p rocmfp4` **24/24**, `-p rocmfpx` **61/61** (including the `m=151669,n=16384,k=32` 2^31-overflow regression case) and the default `MUL_MAT` suite **2534/2534** (ROCm0 + CPU).
 - Smoke: `llama-bench` on Qwen3-Embedding-0.6B BF16 pp32 **652.73 t/s** / tg8 **120.55 t/s**; embeddings server (18010) and jina-reranker-v3.5 (SWA + RANK, 18011) return `/health` 200 plus a real round-trip; generation (Qwen3.8-27B Q4_0_ROCMFP4_FAST, 18012) returns 200 for one chat completion; a private-type quantization round-trip (BF16 -> Q4_0_ROCMFP4_FAST, 302 MB) loads and runs at pp32 **1581 t/s** / tg8 **257 t/s**. GPU vs CPU numeric comparison (Qwen3-Embedding mean, raw un-normalized output): max|delta| 81 (components around 2e4, bf16 accumulation-order level).
 
+### Fixes
+
+- **MUL_MAT_ID (MoE routing) with duplicate expert ids**: when a token's top-k list contains the same expert more than once, `mul_mat_id` dropped or corrupted columns; on the quantized path this surfaced as an illegal memory access in `quantize_mmq_q8_1` (GPU hang). Ports upstream `ggml-org/llama.cpp#26294` (building on `#30477`): the ids compactor keeps one shared-memory entry per token and expands duplicate slots at write-out via prefix sums; MMQ/MMF address columns through the packed-tile mapping; the host fallback no longer breaks at the first match. Two fork adaptations: the new `ntx <= 65535` assert is now CUDA-only (ROCm accepts larger grids), and the fix is rebased onto the ROCmFPX MMQ/MMF specializations. Verification: `MUL_MAT_ID` **953/953** (previously a GPU hang), full suite **18781/18785** (the 4 failures are the documented f16-KV deep-context precision edges, same as stock), `MUL_MAT` rocmfp4 24/24 and rocmfpx 61/61; dense end-to-end pp2048 709.9 t/s (−1.5%, within the noise band), pp16384 610.1 (−0.6%), tg256 unchanged.
+
 ## [v2026.9.24] (2026-09-24)
 
 ### Engine
