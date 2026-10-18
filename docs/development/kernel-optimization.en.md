@@ -99,7 +99,7 @@ test-backend-ops test -o MUL_MAT -p "rocmfp4"   # 24/24
 
 ---
 
-## 2. Attention kernel: 512-thread config split by (ncols1,ncols2) (v2026.10.17)
+## 2. Attention kernel: 512-thread config split by (ncols1,ncols2) (v1.0.0)
 
 ### 2.1 Problem
 
@@ -143,11 +143,11 @@ test-backend-ops perf -o FLASH_ATTN_EXT -p "hsk=256,hsv=256,nh=4,nr23=\[6,1\],kv
 ### 2.7 Delivery
 
 - Commits: `43ea02cb3` (config split), `c57487a5b` (FA vector gate), `6d4fc573a` (test coverage), `0eb0adcf4` (llama-bench types)
-- Version: **v2026.10.17 (v0.2.7)**
+- Version: **v1.0.0 (v0.2.7)**
 
 ---
 
-## 3. Prefill GEMM: the ROCmFP4 MMQ K tile now uses the FP4-specific value (v2026.10.18)
+## 3. Prefill GEMM: the ROCmFP4 MMQ K tile now uses the FP4-specific value (v1.0.1)
 
 ### 3.1 Problem
 
@@ -210,7 +210,7 @@ build/bin/llama-bench -m <27B Q4_0_ROCMFP4_FAST.gguf> -p 2048 -n 0 -r 3
 - Code: `mmq-config-rdna3-5.cuh` (12 entries) + `tests/test-backend-ops.cpp` (new perf cases).
 - Numeric gate and end-to-end A/B data in `~/bench/gemm-e2e-1017/`, `~/bench/mmq-scan2-1017.log`.
 
-## 4. SSM convolution: drop the per-layer, per-ubatch concat (v2026.10.18)
+## 4. SSM convolution: drop the per-layer, per-ubatch concat (v1.0.1)
 
 ### 4.1 Problem
 
@@ -263,7 +263,7 @@ build/bin/llama-bench -m <27B Q4_0_ROCMFP4_FAST.gguf> -p 512,2048 -n 0 -r 3
 
 - Commits: `ggml: add SSM_CONV_STATE (API + CPU forward)`, `CUDA: support a separate conv state in SSM_CONV`, `tests: cover SSM_CONV with a separate conv state`, `models: convolve directly from the conv state, drop the per-layer concat`.
 
-## 5. The fp8 family's K tile: correct, but the hardware ceiling is in the way (v2026.10.18)
+## 5. The fp8 family's K tile: correct, but the hardware ceiling is in the way (v1.0.1)
 
 ### 5.1 Problem
 
@@ -316,7 +316,7 @@ LD_LIBRARY_PATH=build/bin:/opt/rocm/core-10.1/lib \
 
 ---
 
-## 6. MTP speculative decoding: give the verification batch back its old path (v2026.10.18.1)
+## 6. MTP speculative decoding: give the verification batch back its old path (v1.0.2)
 
 **Problem.** The conv-state op from section 4 splits the convolution history out of the input, on the assumption that a batch carries the full `k-1` window. MTP breaks that assumption: its verification batches hold only 1..4 tokens, and the rollback snapshots reach back *before* the batch into the saved state. With `--spec-type draft-mtp` the engine ran, reported a 78.8% draft acceptance rate, and produced collapsed output (` Paris the capital of France is Paris. Paris.`), 0.015 similar to the greedy baseline.
 

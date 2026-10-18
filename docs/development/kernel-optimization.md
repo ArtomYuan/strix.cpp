@@ -99,7 +99,7 @@ test-backend-ops test -o MUL_MAT -p "rocmfp4"   # 24/24
 
 ---
 
-## 2. 注意力内核：512 线程配置按 (ncols1,ncols2) 分裂（v2026.10.17）
+## 2. 注意力内核：512 线程配置按 (ncols1,ncols2) 分裂（v1.0.0）
 
 ### 2.1 问题
 
@@ -143,11 +143,11 @@ test-backend-ops perf -o FLASH_ATTN_EXT -p "hsk=256,hsv=256,nh=4,nr23=\[6,1\],kv
 ### 2.7 交付
 
 - 提交：`43ea02cb3`（配置分裂）、`c57487a5b`（FA 向量闸门）、`6d4fc573a`（用例覆盖）、`0eb0adcf4`（llama-bench 类型）
-- 版本：**v2026.10.17 (v0.2.7)**
+- 版本：**v1.0.0 (v0.2.7)**
 
 ---
 
-## 3. 预填 GEMM：ROCmFP4 的 MMQ K 分块接上 FP4 专用值（v2026.10.18）
+## 3. 预填 GEMM：ROCmFP4 的 MMQ K 分块接上 FP4 专用值（v1.0.1）
 
 ### 3.1 问题
 
@@ -210,7 +210,7 @@ build/bin/llama-bench -m <27B Q4_0_ROCMFP4_FAST.gguf> -p 2048 -n 0 -r 3
 - 代码：`mmq-config-rdna3-5.cuh`（12 条条目）+ `tests/test-backend-ops.cpp`（新增 perf 用例）。
 - 数值门、端到端 A/B 数据在 `~/bench/gemm-e2e-1017/`、`~/bench/mmq-scan2-1017.log`。
 
-## 4. SSM 卷积：去掉每层、每个 ubatch 的整块 concat（v2026.10.18）
+## 4. SSM 卷积：去掉每层、每个 ubatch 的整块 concat（v1.0.1）
 
 ### 4.1 问题
 
@@ -263,7 +263,7 @@ build/bin/llama-bench -m <27B Q4_0_ROCMFP4_FAST.gguf> -p 512,2048 -n 0 -r 3
 
 - 提交：`ggml: add SSM_CONV_STATE (API + CPU forward)`、`CUDA: support a separate conv state in SSM_CONV`、`tests: cover SSM_CONV with a separate conv state`、`models: convolve directly from the conv state, drop the per-layer concat`。
 
-## 5. fp8 族的 K 分块：做到了正确，但撞上硬件天花板（v2026.10.18）
+## 5. fp8 族的 K 分块：做到了正确，但撞上硬件天花板（v1.0.1）
 
 ### 5.1 问题
 
@@ -316,7 +316,7 @@ LD_LIBRARY_PATH=build/bin:/opt/rocm/core-10.1/lib \
 
 ---
 
-## 6. MTP 投机解码：把验证批次还给旧路径（v2026.10.18.1）
+## 6. MTP 投机解码：把验证批次还给旧路径（v1.0.2）
 
 **问题**。第 4 节的 conv-state 算子把卷积历史从输入里拆出去，前提是"这一批 token 自带完整的 `k-1` 窗口"。MTP 投机解码不满足这个前提：它的验证批只有 1~4 个 token，而且回滚快照要取到**批次之前**的状态行。开启 `--spec-type draft-mtp` 后表现为：能跑，草稿接受率 78.8%，但输出塌缩（` Paris the capital of France is Paris. Paris.`），与贪心基线相似度 0.015。
 

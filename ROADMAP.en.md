@@ -2,7 +2,7 @@
 
 This document describes **what we plan to do next**. For what has already shipped, see [CHANGELOG.en.md](CHANGELOG.en.md); item-by-item evidence lives in the kernel optimization record and in each release's notes.
 
-Current version: **v2026.10.18 (GEMM K tile, duplicate-expert MoE, SSM conv without the concat; not yet tagged)**
+Current version: **v1.0.1 (GEMM K tile, duplicate-expert MoE, SSM conv without the concat; not yet tagged)**
 
 The roadmap lists work in progress, not commitments — scope and order may change. What gets done first, and whether it gets done at all, is the maintainer's call.
 
@@ -63,7 +63,7 @@ Decode is currently level with the previous version. gufo's 1.7× comes from KV 
 ## Decide with us
 
 - **Production switch**: new lib `80d9cd` (K tile + MoE fix + SSM conv) → `~/llama-rocm/bin`, via full mirror + smoke test + rollback plan.
-- **Release**: whether to tag this change `v2026.10.18` and write a Release.
+- **Release**: whether to tag this change `v1.0.1` and write a Release.
 - **What runs first**: the fp8 family for performance, or wiring work for fused quantization — the maintainer's call.
 
 ---

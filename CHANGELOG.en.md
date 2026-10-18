@@ -2,7 +2,7 @@
 
 [简体中文](CHANGELOG.md)
 
-## [v2026.10.18.1] (2026-10-18)
+## [v1.0.2] (2026-10-18)
 
 ### Added
 
@@ -23,8 +23,8 @@
 
 - **Short batches and the rollback path in the conv-state op**: the new op assumed every batch carries the full `k-1` convolution window, but MTP verification batches hold only 1..4 tokens and their rollback snapshots reach back into the saved state. The op is now dispatched by batch: plain prefill uses it, while single-token decode, graph reservation and speculative rollback keep the original concatenating path. MTP output is byte-identical to the baseline again and pp2048 holds at 756.8 t/s. Commit 3175dd92e.
 
-## [v2026.10.18] (2026-10-18)
-## [v2026.10.18] (2026-10-18)
+## [v1.0.1] (2026-10-18)
+## [v1.0.1] (2026-10-18)
 
 ### Performance
 
@@ -49,7 +49,7 @@
 
 - `test-backend-ops`: added MUL_MAT perf cases for the Qwen3.8-27B projection shapes (`17408×2048×5120`, `5120×2048×17408`, `6144×2048×5120`, `17408×512×5120`, `17408×1×5120`), each for `Q4_0_ROCMFP4_FAST` and F16.
 
-## [v2026.10.17] (2026-10-17)
+## [v1.0.0] (2026-10-17)
 
 ### Rename
 

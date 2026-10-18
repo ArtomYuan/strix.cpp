@@ -20,9 +20,9 @@ Formerly `llama.cpp-rocm` (renamed 2026-10-17; old links redirect automatically)
 
 ## Measured performance
 
-Same machine, same model, same quant, same flags; the control arm is the previous production build, `v2026.10.17`:
+Same machine, same model, same quant, same flags; the control arm is the previous production build, `v1.0.0`:
 
-| Scenario (Qwen3.8-27B, Q4_0_ROCMFP4_FAST) | v2026.10.17 | v2026.10.18.1 | Delta |
+| Scenario (Qwen3.8-27B, Q4_0_ROCMFP4_FAST) | v1.0.0 | v1.0.2 | Delta |
 |:--|--:|--:|--:|
 | Prefill pp2048 (short context) | 437 t/s | **757.6 t/s** | **+73%** |
 | Prefill pp16384 (deep context) | 389 t/s | **638.8 t/s** | **+64%** |
