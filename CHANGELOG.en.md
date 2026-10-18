@@ -2,6 +2,28 @@
 
 [简体中文](CHANGELOG.md)
 
+## [Unreleased]
+
+### Added
+
+- **64K decoding: KV type and draft depth are now tuned per context length**. Measured on the same ~60k-token document:
+
+  | Config | 64K generation t/s | vs baseline |
+  |:--|--:|--:|
+  | f16 KV, no speculation | 9.66 | 1.00x |
+  | q8_0 KV, no speculation | 8.69 | 0.90x |
+  | q4_0 KV, no speculation | **10.53** | **+9%** |
+  | f16 KV, draft depth 3 | **17.5** | **1.77x** |
+  | f16 KV, draft depth 4 | 14.0 | 1.41x |
+  | f16 KV, draft depth 6 | 12.4 | 1.25x |
+  | f16 KV, draft depth 8 | 5.4 | 0.55x |
+
+  **Draft depth must follow the context length**: depth 6 is fastest for short contexts (<= 8k, 37.9 t/s), depth 3 for long ones (>= 32k, 17.5 t/s). At long context the draft hit rate drops while every verification pass still reads the whole KV cache, so deeper drafts cost more than they return.
+
+  **A smaller KV cache is not automatically faster**: q8_0 is slower than f16 (dequantisation costs more than the traffic it saves); only q4_0 gains, by 9%.
+
+  Limit: speculative decoding is byte-identical to non-speculative decoding on **unambiguous continuations**; on **ambiguous text** the different batch shape changes floating-point ordering and can flip a token. That is numeric, not state corruption - the same length, a different cache capacity, disabled backend sampling and greedy drafting all leave the behaviour unchanged.
+
 ## [v1.0.2] (2026-10-18)
 
 ### Added

@@ -349,6 +349,44 @@ LD_LIBRARY_PATH=build/bin:/opt/rocm/core-10.1/lib \
 
 **Why this is worth recording.** Single-stream decode was already at 87% of the bandwidth ceiling (16.1 tok/s); further kernel work could squeeze at most 7% more. Speculation changes the direction: read the weights once, emit several tokens, and therefore clear the single-stream ceiling. It is also the first payoff of the "cut the bytes read per decoded token" methodology inside our own engine.
 
+## 7. 64K decoding: both depth and KV type follow the context length (after v1.0.2)
+
+**Starting point.** Single-stream 64K decoding ran at 9.66 t/s, about 4% below gufo's published 10.13. Two suspects: KV traffic and speculative decoding.
+
+**A smaller KV cache is not automatically faster.** Same ~60k-token document:
+
+| KV | decode t/s |
+|:--|--:|
+| f16 | 9.66 |
+| q8_0 | 8.69 |
+| q4_0 | 10.53 |
+
+q8_0 is *slower*: dequantisation costs more than the traffic it saves. Only q4_0 gains, by 9%. That kills the intuition that dropping the KV cache to 8 bit must help.
+
+**Deeper drafts are not better.** Same document, 48 generated tokens:
+
+| Depth | 64K t/s | short context (<= 8k) t/s |
+|--:|--:|--:|
+| off | 9.9 | 14.0 |
+| 3 | **17.5** | 34.2 |
+| 4 | 14.0 | 34.8 |
+| 5 | 13.2 | 37.1 |
+| 6 | 12.4 | **37.9** |
+| 8 | 5.4 | 8.4 |
+
+The optimum is depth 6 on short contexts and depth 3 on long ones. The reason is not just draft quality: at long context every verification pass reads the whole KV cache, so **the marginal cost of depth grows with context** while the marginal gain in hit rate falls.
+
+**One wrong call worth recording.** Mid-investigation I read the 64K output mismatch as "rollback polluted the KV". Three controls killed that theory:
+
+- shrinking the context allocation from 70k to 12k changed nothing (not a cache overflow);
+- disabling backend sampling, forcing greedy drafting and `p_min=1` (reject almost everything) all produced the same output (not sampler state);
+- the first 2k tokens of the same wikitext **also** diverge (not long context);
+- yet 64K with a deterministic continuation (`The capital of France is`) is **byte-identical**.
+
+Conclusion: with speculation the verification batch computes several tokens at once, so the floating-point reduction order differs; on ambiguous text that tiny difference flips a token and autoregression amplifies it. **Numeric, not corrupted state.**
+
+**Recommendation.** Depth 6 for short contexts, depth 3 for long ones; add q4_0 KV when another notch is needed. Do not treat depth 8 as "more aggressive, therefore better" - measured acceptance collapses to 0.6% and only overhead remains.
+
 ## Appendix: entry structure (follow for future kernel-level changes)
 
 1. Problem (with baseline numbers and applicable conditions)
