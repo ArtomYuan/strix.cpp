@@ -475,10 +475,11 @@ struct server_slot {
     }
 
     bool can_batch_with(server_slot & other_slot) const {
-        // speculative verification with rollback snapshots (n_rs_seq > 0) must not share a
-        // batch across sequences: the per-seq logits/state mapping is only valid when the
-        // target decodes one sequence at a time
-        if (ctx_tgt != nullptr && llama_n_rs_seq(ctx_tgt) > 0) {
+        // only batch slots in the same processing phase. A prompt (many tokens) and a
+        // decode (one token) in one batch give the ubatch unequal token counts per
+        // sequence, and the MTP h-row bookkeeping assumes a single aligned batch - the
+        // second sequence then reads the first sequence's h rows.
+        if (state != other_slot.state) {
             return false;
         }
         GGML_ASSERT(task);
