@@ -65,6 +65,10 @@ set(TARGET strix-server)
 add_executable(${TARGET} main.cpp)
 install(TARGETS ${TARGET} RUNTIME)
 
+if (UNIX)
+    install(CODE "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E rm -f \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/llama-server\" COMMAND \"${CMAKE_COMMAND}\" -E create_symlink strix-server \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/llama-server\")")
+endif()
+
 target_link_libraries(${TARGET} PRIVATE strix-server-impl)
 target_compile_features(${TARGET} PRIVATE cxx_std_17)
 
