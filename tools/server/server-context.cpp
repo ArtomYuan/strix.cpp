@@ -475,6 +475,12 @@ struct server_slot {
     }
 
     bool can_batch_with(server_slot & other_slot) const {
+        // speculative verification with rollback snapshots (n_rs_seq > 0) must not share a
+        // batch across sequences: the per-seq logits/state mapping is only valid when the
+        // target decodes one sequence at a time
+        if (ctx_tgt != nullptr && llama_n_rs_seq(ctx_tgt) > 0) {
+            return false;
+        }
         GGML_ASSERT(task);
 
         // a joint decision head reads the whole batch
@@ -1269,6 +1275,7 @@ private:
 
                 params_base.speculative.draft.ctx_tgt = ctx_tgt;
                 params_base.speculative.draft.ctx_dft = ctx_dft;
+                params_base.speculative.draft.ctx_dfts = spec_init->contexts();
             }
 
             load_progress_callback(1.0f, &load_progress_spec);
@@ -1430,8 +1437,10 @@ private:
 
             slot.id      = i;
             slot.ctx_tgt = ctx_tgt;
-            slot.ctx_dft = ctx_dft;
-            slot.mem.init(ctx_tgt, ctx_dft);
+            slot.ctx_dft = i < (int) params_base.speculative.draft.ctx_dfts.size()
+                ? params_base.speculative.draft.ctx_dfts[i]
+                : ctx_dft;
+            slot.mem.init(ctx_tgt, slot.ctx_dft);
             slot.spec    = spec.get();
             slot.n_ctx   = n_ctx_slot();
 
@@ -2586,7 +2595,7 @@ private:
         cur.update_pos(slot.prompt.n_tokens() - n_tokens_cur, pos_min, pos_max);
 
         cur.update_tgt(ctx_tgt, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
-        cur.update_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+        cur.update_dft(slot.ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
         // stash the draft's speculative state with the checkpoint
         common_speculative_get_state(spec.get(), slot.id, cur.data_spec);
 
@@ -2711,9 +2720,9 @@ private:
             }
         }
         // the slot file does not check the draft context - test-load one draft checkpoint, drop the draft data if it does not fit
-        if (ctx_dft != nullptr && !checkpoints.empty() && !checkpoints.back().data_dft.empty()) {
-            const bool ok = checkpoints.back().load_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
-            llama_memory_seq_rm(llama_get_memory(ctx_dft), slot.id, -1, -1);
+        if (slot.ctx_dft != nullptr && !checkpoints.empty() && !checkpoints.back().data_dft.empty()) {
+            const bool ok = checkpoints.back().load_dft(slot.ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+            llama_memory_seq_rm(llama_get_memory(slot.ctx_dft), slot.id, -1, -1);
             if (!ok) {
                 SLT_WRN(slot, "draft context checkpoint data in '%s' does not match the draft context - dropped\n", filepath.c_str());
                 for (auto & cur : checkpoints) {
@@ -3386,7 +3395,7 @@ private:
                                 llama_memory_seq_pos_max(llama_get_memory(ctx_tgt), slot.id));
 
                         if (use_ckpt_dft) {
-                            slot.spec_ckpt.update_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+                            slot.spec_ckpt.update_dft(slot.ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
                         }
 
                         slot.spec_prompt = slot.prompt.tokens.get_text_tokens();
@@ -3428,12 +3437,12 @@ private:
             // TODO: avoid restoring the draft context and re-evaluating the drafted tokens when not needed [TAG_SPEC_AVOID_DRAFT_REEVAL]
             const bool use_ckpt_dft = ctx_dft_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_FULL;
 
-            if (ctx_dft) {
+            if (slot.ctx_dft) {
                 if (use_ckpt_dft) {
-                    GGML_ASSERT(ckpt.load_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY));
+                    GGML_ASSERT(ckpt.load_dft(slot.ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY));
                 }
 
-                if (!llama_memory_seq_rm(llama_get_memory(ctx_dft), slot.id, ckpt.pos_max + 1, -1)) {
+                if (!llama_memory_seq_rm(llama_get_memory(slot.ctx_dft), slot.id, ckpt.pos_max + 1, -1)) {
                     GGML_ABORT("failed to remove sequence %d\n", slot.id);
                 }
             }
@@ -3461,7 +3470,7 @@ private:
                 }
 
                 if (use_ckpt_dft) {
-                    ckpt.update_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+                    ckpt.update_dft(slot.ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
                 }
             }
         });
@@ -3762,7 +3771,7 @@ private:
                                     if (!do_reset) {
                                         // restore the context checkpoint
                                         if (!it->load_tgt(ctx_tgt, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY) ||
-                                            !it->load_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY)) {
+                                            !it->load_dft(slot.ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY)) {
                                             if (it->id_task != -1) {
                                                 GGML_ABORT("failed to restore context checkpoint\n");
                                             }

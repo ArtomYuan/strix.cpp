@@ -115,6 +115,10 @@ struct common_speculative_init_result {
     llama_model   * model();
     llama_context * context();
 
+    // MTP creates one draft context per sequence; other speculative types return
+    // a single-element vector (or an empty one when no context was created).
+    std::vector<llama_context *> contexts();
+
 private:
     struct impl;
     std::unique_ptr<impl> pimpl;
