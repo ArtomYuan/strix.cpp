@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [v1.0.3] (2026-10-19)
+
 ### Added
 
 - **64K decoding: KV type and draft depth are now tuned per context length**. Measured on the same ~60k-token document:
@@ -23,6 +25,19 @@
   **A smaller KV cache is not automatically faster**: q8_0 is slower than f16 (dequantisation costs more than the traffic it saves); only q4_0 gains, by 9%.
 
   Limit: speculative decoding is byte-identical to non-speculative decoding on **unambiguous continuations**; on **ambiguous text** the different batch shape changes floating-point ordering and can flip a token. That is numeric, not state corruption - the same length, a different cache capacity, disabled backend sampling and greedy drafting all leave the behaviour unchanged.
+
+### Fixed
+
+- **MTP acceptance collapse with multiple sequences**: with two or more sequences decoding speculatively at once, the second sequence read its verification logits from the wrong batch row. Acceptance fell from above 50% to 2-6%, and depth 4 and beyond produced garbage. The target model was putting verification tokens from several sequences into one batch; with `n_rs_seq > 0`, the per-sequence logits and rollback-state mapping only hold for a single-sequence batch. `server_slot::can_batch_with` now returns false when `llama_n_rs_seq(ctx_tgt) > 0`, so verification batches are decoded one slot at a time.
+
+  | Scenario | Acceptance | Speed | Output |
+  |:--|--:|--:|:--|
+  | dual, depth 4 | 87.5% / 63.8% | 42.2 / 32.4 t/s | yes |
+  | dual, depth 6 | 88.3% / 57.1% | 49.5 / 35.1 t/s | yes |
+  | 4-way, depth 2 | 79%-100% | ~119 t/s total | yes |
+  | 5-way, depth 1 | 80%-100% | ~115 t/s total | yes |
+
+  Single stream at depth 6 (128 tokens) stays at 37.6 t/s, against 37.9 in v1.0.2. The trade-off is that speculative decoding now serialises slots: extra users queue for their first token. Non-speculative decoding still batches normally. See section 8 of `docs/development/kernel-optimization.en.md`.
 
 ## [v1.0.2] (2026-10-18)
 
@@ -45,7 +60,6 @@
 
 - **Short batches and the rollback path in the conv-state op**: the new op assumed every batch carries the full `k-1` convolution window, but MTP verification batches hold only 1..4 tokens and their rollback snapshots reach back into the saved state. The op is now dispatched by batch: plain prefill uses it, while single-token decode, graph reservation and speculative rollback keep the original concatenating path. MTP output is byte-identical to the baseline again and pp2048 holds at 756.8 t/s. Commit 3175dd92e.
 
-## [v1.0.1] (2026-10-18)
 ## [v1.0.1] (2026-10-18)
 
 ### Performance

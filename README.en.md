@@ -63,7 +63,7 @@ When the model ships a `nextn` layer, speculative decoding is available (only Qw
 build/bin/llama-server -m <model.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
 ```
 
-With the same prompt and seed the output is **byte-identical** to a non-speculative run, while generation goes from 14.0 to 37.9 t/s. Draft depth 8 and beyond collapses the acceptance rate to 0.6% and only adds overhead; do not use it. See [kernel optimization, section 6](docs/development/kernel-optimization.en.md).
+With the same prompt and seed the output is **byte-identical** to a non-speculative run, while generation goes from 14.0 to 37.9 t/s. Draft depth 8 and beyond collapses the acceptance rate to 0.6% and only adds overhead; do not use it. With multiple concurrent sequences the verification batch is decoded one slot at a time: output and acceptance are correct, but extra users queue for their first token. Non-speculative decoding still batches normally. See [kernel optimization, section 6](docs/development/kernel-optimization.en.md) and [section 8](docs/development/kernel-optimization.en.md).
 
 ### Keep it running as a service
 

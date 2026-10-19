@@ -63,7 +63,7 @@ OpenAI 兼容 API（默认 `/v1`）。视觉/定位模型加 `--special`；纯�
 build/bin/llama-server -m <模型.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
 ```
 
-同提示、同 seed 下，输出与不开启时**逐字一致**，解码 14.0 → 37.9 t/s。草稿深度 8 及以上会让接受率塌到 0.6%，只剩开销，不要用。详见[内核优化记录第 6 节](docs/development/kernel-optimization.md)。
+同提示、同 seed 下，输出与不开启时**逐字一致**，解码 14.0 → 37.9 t/s。草稿深度 8 及以上会让接受率塌到 0.6%，只剩开销，不要用。多序列并发时验证批按槽串行解码：输出与接受率正常，但多用户的首 token 会排队；非投机模式仍可合批。详见[内核优化记录第 6 节](docs/development/kernel-optimization.md)与[第 8 节](docs/development/kernel-optimization.md)。
 
 ### 作为服务常驻
 
