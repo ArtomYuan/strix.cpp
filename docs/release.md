@@ -1,55 +1,25 @@
 # Release process
 
-llama.cpp uses [semantic versioning](https://semver.org) (`MAJOR.MINOR.PATCH`).
+strix.cpp follows semantic versioning for its own releases: `vMAJOR.MINOR.PATCH`. GitHub Release names and CHANGELOG headings use `vX.Y.Z (YYYY-MM-DD)`; git tags contain only the version.
 
-## Version bump guidelines
+`LLAMA_VERSION_*` in the root `CMakeLists.txt` is the upstream llama.cpp sync version. It is **not** the strix.cpp release tag; do not bump it for a strix.cpp release.
 
-| Change type | Version component |
-|---|---|
-| Breaking change to the public C API (`include/llama.h`)         | `MAJOR` |
-| Backward-compatible features, model support, or API addition    | `MINOR` |
-| Bug fix with no API change                                      | `PATCH` |
+## Before tagging
 
-The version is set in the three variables at the top of the root `CMakeLists.txt`:
+- Add a `CHANGELOG.md` / `CHANGELOG.en.md` section with the version, date, changes, and verification results.
+- Build and smoke-test on gfx1151 (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+- Update README/docs/model cards when commands, binary names, or version labels change.
 
-```cmake
-set(LLAMA_VERSION_MAJOR 0)
-set(LLAMA_VERSION_MINOR 1)
-set(LLAMA_VERSION_PATCH 0)
-```
+## Cutting the release
 
-_A version bump should be included in the PR that introduces the change, or in a
-dedicated bump commit merged before the release is cut._
+1. Commit the release notes with `chore(release): vX.Y.Z`.
+2. Create an annotated tag: `git tag -a vX.Y.Z -m "vX.Y.Z"`.
+3. Push `master` and the tag. This repository has no GitHub Actions workflows; maintainers push with a token-authorized remote.
+4. Create a GitHub Release titled `vX.Y.Z (YYYY-MM-DD)` with bilingual notes.
 
-_TODO: add PR labels (`semver: patch`, `semver: minor`, `semver: major`) to help
-identify which PRs require a version bump before cutting a release._
+The upstream `scripts/release.sh` and the `make-release` workflow are **not used** by this fork; they refer to upstream automation that is not present here.
 
-## Making a release
+## Compatibility
 
-Releases are created by running the [make-release](.github/workflows/make-release.yml)
-which is a manual workflow.
-
-The workflow runs against the branch selected in the "Run workflow" dialog
-(default `master`) and takes an optional `commit` SHA. When a commit is given,
-the workflow validates that the commit belongs to the branch and is not older
-than 3 days from the branch HEAD, then releases that commit instead of the
-branch HEAD.
-
-The workflow creates an annotated git tag (e.g. `v0.1.0`) and pushes it to the
-remote. No GitHub Release object is created, the tag is the release artifact.
-
-## Building a release
-
-By default, `LLAMA_BUILD_IS_DEV=ON` which appends a `-dev` suffix to `LLAMA_VERSION`,
-marking the build as a nightly/development build. Distributors building from a
-release tag must pass `-DLLAMA_BUILD_IS_DEV=OFF` to produce a clean version string
-(e.g. `0.1.0` instead of `0.1.0-dev`).
-
-## How releases reach users
-Currently releases are not published to github releases, only nightly/development
-builds are available there. The way users can access releases are using the following
-channels:
-
-- **llama-install.sh**  — downloads pre-built binaries built from the release tag.
-- **Package managers**  — consume the git tag directly.
-- **Build from source** — users clone the repo and check out the tag.
+- `strix-server` is the primary server binary. Builds and installs also provide `llama-server` as a compatibility symlink.
+- The 2026-09 releases are tagged `v0.2.0`…`v0.2.6`. The upstream llama.cpp `v0.2.0` tag is preserved as `upstream/v0.2.0`.

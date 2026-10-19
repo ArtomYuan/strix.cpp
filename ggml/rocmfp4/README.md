@@ -1,6 +1,8 @@
 # ROCmFP4
 
-ROCmFP4 is the experimental `Q4_0_ROCMFP4` GGUF tensor type for Strix Halo.
+> Historical design notes. Current status and usage: [docs/quantization-guide.md](../../docs/quantization-guide.md). Some scripts referenced below are no longer in this tree; verify before running.
+
+ROCmFP4 is the `Q4_0_ROCMFP4` GGUF tensor type for Strix Halo.
 The current AMD-tuned variant stores 32 weights per block as packed
 E2M1-derived 4-bit values plus two unsigned E4M3 scale bytes, one per
 16-weight half, for 18 bytes per block. The codebook stores half-scale signed
@@ -12,7 +14,7 @@ This directory owns the format-specific implementation. The rest of ggml only
 registers and dispatches the type.
 
 Current status:
-- The format runs on CPU, Vulkan, and ROCm/HIP in this custom tree.
+- The format runs on CPU and ROCm/HIP in this tree; Vulkan kernels are inherited but not enabled in strix.cpp builds.
 - `Q4_0_ROCMFP4` is the pure 4.50 BPW dual-scale path.
 - `Q4_0_ROCMFP4_LEAN` keeps ROCmFP4 for dense tensors but protects token
   embeddings with `Q5_K`. On the Qwen3-4B Strix test pass this closed most of

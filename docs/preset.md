@@ -1,8 +1,8 @@
-# llama.cpp INI Presets
+# strix.cpp INI Presets
 
 ## Introduction
 
-The INI preset feature, introduced in [PR#17859](https://github.com/ggml-org/llama.cpp/pull/17859), allows users to create reusable and shareable parameter configurations for llama.cpp.
+The INI preset feature, introduced in [PR#17859](https://github.com/ggml-org/llama.cpp/pull/17859), allows users to create reusable and shareable parameter configurations for strix.cpp.
 
 ## Using Presets with the Server
 

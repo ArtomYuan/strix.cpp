@@ -92,7 +92,7 @@ ET-SOC device installed and kernel driver loaded).
 ```sh
 llama-cli -m mymodel.gguf
 # or
-llama-server -hf ggml-org/Qwen3-8B-GGUF:q8_0
+strix-server -hf ggml-org/Qwen3-8B-GGUF:q8_0
 ```
 
 If you want to run llama.cpp binaries (e.g. `llama-cli`) inside docker

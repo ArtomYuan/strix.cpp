@@ -18,7 +18,7 @@ strix.cpp 是 llama.cpp 的独立维护分支。它把三件事做扎实：持�
 
 ## 实测
 
-同机、同模型、同量化、同参数，对照臂 = 上一个生产版本 `v1.0.0`：
+同机、同模型、同量化、同参数；下表为 v1.0.2 发布时实测（v1.1.0 未改这些内核路径，数字沿用），对照臂 = `v1.0.0`：
 
 | 场景（Qwen3.8-27B，Q4_0_ROCMFP4_FAST） | v1.0.0 | v1.0.2 | 变化 |
 |:--|--:|--:|--:|
@@ -61,7 +61,7 @@ OpenAI 兼容 API（默认 `/v1`）。视觉/定位模型加 `--special`；纯�
 build/bin/strix-server -m <模型.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
 ```
 
-同提示、同 seed 下，输出与不开启时**逐字一致**，解码 14.0 → 37.9 t/s。草稿深度 8 及以上会让接受率塌到 0.6%，只剩开销，不要用。多序列并发时正常合批；预填与解码不会混进同一批（两者每条序列的 token 数不同）。详见[内核优化记录第 6 节](docs/development/kernel-optimization.md)与[第 8 节](docs/development/kernel-optimization.md)。
+同提示、同 seed 下，输出与不开启时**逐字一致**，解码 14.0 → 37.9 t/s。草稿深度 8 及以上会让接受率塌到 0.6%，只剩开销，不要用。多序列并发时正常合批；预填与解码不会混进同一批（两者每条序列的 token 数不同）。详见[内核优化记录第 6 节与第 8 节](docs/development/kernel-optimization.md)；自 v1.1.0 起 `process()` 还会拒绝批内交错的序列，见 CHANGELOG `[v1.1.0]`。
 
 ### 作为服务常驻
 

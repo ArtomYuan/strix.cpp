@@ -161,7 +161,7 @@ Run llama.cpp server with ZenDNN acceleration:
 export ZENDNNL_MATMUL_ALGO=1    # Blocked AOCL DLP algo for best performance
 
 # Start server
-./build/bin/llama-server \
+./build/bin/strix-server \
     -m models/Llama-3.1-8B-Instruct.BF16.gguf \
     --host 0.0.0.0 \
     --port 9931 \
@@ -172,7 +172,7 @@ Access the server at `http://localhost:9931`.
 
 **Performance tips**:
 - Use `ZENDNNL_MATMUL_ALGO=1` for optimal performance
-- For NUMA systems: `numactl --cpunodebind=0 --membind=0 ./build/bin/llama-server ...`
+- For NUMA systems: `numactl --cpunodebind=0 --membind=0 ./build/bin/strix-server ...`
 
 ## Environment Variable
 

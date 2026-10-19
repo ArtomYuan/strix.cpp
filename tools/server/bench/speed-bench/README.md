@@ -1,6 +1,6 @@
 # SPEED-Bench server benchmark
 
-A lightweight [SPEED-Bench](https://huggingface.co/datasets/nvidia/SPEED-Bench) client for benchmarking an already-running `llama-server` through its OpenAI-compatible API. It is primarily meant to evaluate speculative decoding (draft model, n-gram, MTP, EAGLE3, ...) by reporting per-category throughput, latency, and draft acceptance.
+A lightweight [SPEED-Bench](https://huggingface.co/datasets/nvidia/SPEED-Bench) client for benchmarking an already-running `strix-server` through its OpenAI-compatible API. It is primarily meant to evaluate speculative decoding (draft model, n-gram, MTP, EAGLE3, ...) by reporting per-category throughput, latency, and draft acceptance.
 
 The dataset handling follows the [aiperf SPEED-Bench tutorial](https://github.com/ai-dynamo/aiperf/blob/main/docs/tutorials/speed-bench.md), which also documents the dataset layout in more detail.
 
@@ -12,10 +12,10 @@ pip install -r tools/server/bench/speed-bench/requirements.txt
 
 ## Start a server
 
-The client does not launch the server, so start `llama-server` yourself first. If you care about throughput numbers, set the client `--concurrency` to the server's slot count (`--np`):
+The client does not launch the server, so start `strix-server` yourself first. If you care about throughput numbers, set the client `--concurrency` to the server's slot count (`--np`):
 
 ```bash
-llama-server \
+strix-server \
   -m target.gguf \
   -c 8192 \
   --port 9931 \
@@ -59,7 +59,7 @@ A few common ones:
 - `--bench throughput_8k` runs a fixed-input-length throughput split.
 - `--limit 8` keeps at most 8 samples per category, which is enough for a quick check.
 
-The `throughput_{ISL}` splits use fixed input lengths (1k - 32k), so they are handy for long-context testing and for comparing different `llama-server` batching settings (e.g. sweeping `-ub` / `--ubatch-size`) on prompts of a known size. Make sure the server `-c` is large enough for the chosen split. When raising `-ub`, also raise `-b` to at least the same value, since the physical ubatch cannot exceed the logical batch.
+The `throughput_{ISL}` splits use fixed input lengths (1k - 32k), so they are handy for long-context testing and for comparing different `strix-server` batching settings (e.g. sweeping `-ub` / `--ubatch-size`) on prompts of a known size. Make sure the server `-c` is large enough for the chosen split. When raising `-ub`, also raise `-b` to at least the same value, since the physical ubatch cannot exceed the logical batch.
 
 When `--output` is given, the JSON file holds the run `config`, the `selected_samples` / `completed_samples` / `failed_samples` counts, the per-category `summary` rows, and the per-sample `results`.
 
@@ -77,7 +77,7 @@ The summary prints one row per category plus an `overall` row:
 
 Save a run from each server with `--output`, then diff the two JSON files with `speed_bench_compare.py`.
 
-First, start a plain `llama-server` (no speculative decoding) and save a baseline:
+First, start a plain `strix-server` (no speculative decoding) and save a baseline:
 
 ```bash
 python tools/server/bench/speed-bench/speed_bench.py \
@@ -89,7 +89,7 @@ python tools/server/bench/speed-bench/speed_bench.py \
   --output baseline.json
 ```
 
-Then restart `llama-server` with speculative decoding enabled and save another run:
+Then restart `strix-server` with speculative decoding enabled and save another run:
 
 ```bash
 python tools/server/bench/speed-bench/speed_bench.py \

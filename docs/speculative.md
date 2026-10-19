@@ -1,12 +1,14 @@
 # Speculative Decoding
 
+> **strix.cpp note**: the primary server binary is `strix-server` (`llama-server` is a compatibility symlink). MTP draft (`draft-mtp`) requires a model with a `nextn` head; on the verified Qwen3.8-27B, depth 8+ collapses acceptance. See `docs/development/kernel-optimization.md` section 8.
+
 llama.cpp supports speculative decoding, a technique that can significantly accelerate token generation by predicting multiple tokens ahead of the main model.
 
 [Speculative decoding](https://en.wikipedia.org/wiki/Transformer_(deep_learning)#Speculative_decoding) leverages the fact that computing n tokens in a batch (as in prompt processing) is more efficient than computing n sequentially (as in response generation). By generating draft tokens quickly and then verifying them with the target model in a single batch, this approach can achieve substantial speedups when the draft predictions are frequently correct.
 
 ## Implementations
 
-The `llama-server` application supports several implementations of speculative decoding. An implementation with draft model can be mixed with an implementation without draft model.
+The `strix-server` application supports several implementations of speculative decoding. An implementation with draft model can be mixed with an implementation without draft model.
 
 ### Draft Model (`draft`)
 
@@ -29,7 +31,7 @@ for `Qwen/Qwen3-4B`):
 python convert_hf_to_gguf.py AngelSlim/Qwen3-4B_eagle3 \
     --target-model-dir Qwen/Qwen3-4B --outtype bf16 --outfile Qwen3-4B-eagle3.gguf
 
-llama-server -m Qwen3-4B.gguf -md Qwen3-4B-eagle3.gguf --spec-type draft-eagle3
+strix-server -m Qwen3-4B.gguf -md Qwen3-4B-eagle3.gguf --spec-type draft-eagle3
 ```
 
 Supported EAGLE-3 draft models include:
@@ -68,7 +70,7 @@ target's tokenizer and token embeddings:
 python convert_hf_to_gguf.py z-lab/Qwen3-4B-DFlash \
     --target-model-dir Qwen/Qwen3-4B --outtype bf16 --outfile Qwen3-4B-DFlash.gguf
 
-llama-server -m Qwen3-4B.gguf -md Qwen3-4B-DFlash.gguf \
+strix-server -m Qwen3-4B.gguf -md Qwen3-4B-DFlash.gguf \
     --spec-type draft-dflash --spec-draft-n-max 15 -fa on --jinja
 ```
 
@@ -94,7 +96,7 @@ and token embeddings:
 python convert_hf_to_gguf.py deepseek-ai/dspark_qwen3_4b_block7 \
     --target-model-dir Qwen/Qwen3-4B --outtype bf16 --outfile Qwen3-4B-DSpark.gguf
 
-llama-server -m Qwen3-4B.gguf -md Qwen3-4B-DSpark.gguf \
+strix-server -m Qwen3-4B.gguf -md Qwen3-4B-DSpark.gguf \
     --spec-type draft-dspark --spec-draft-n-max 7 -fa on --jinja
 ```
 
@@ -134,7 +136,7 @@ An example to use this approach can be the rewriting of source code by a LLM.
 This implementation looks for the last n-gram in history that matches the current n-gram and creates a draft using the m tokens following the matched n-gram. It is the simplest self-speculative approach with minimal overhead.
 
 ```
-llama-server [...] --spec-type ngram-simple --spec-draft-n-max 64
+strix-server [...] --spec-type ngram-simple --spec-draft-n-max 64
 ```
 
 #### n-gram Map Key (`ngram-map-k`)
@@ -145,7 +147,7 @@ The number of accepted tokens is stored for each used n-gram.
 
 **Example:**
 ```
-llama-server [...] --spec-type ngram-map-k --spec-draft-n-max 64
+strix-server [...] --spec-type ngram-map-k --spec-draft-n-max 64
 ```
 
 #### n-gram Map Key-4-Values (`ngram-map-k4v`)
@@ -156,7 +158,7 @@ The number of accepted tokens is stored for each used n-gram.
 
 **Example:** Server options to be used if there are a lot of longer repetitions.
 ```
-llama-server [...] --spec-type ngram-map-k4v --spec-ngram-map-k4v-size-n 8 --spec-ngram-map-k4v-size-m 8 --spec-ngram-map-k4v-min-hits 2 --spec-draft-n-max 64
+strix-server [...] --spec-type ngram-map-k4v --spec-ngram-map-k4v-size-n 8 --spec-ngram-map-k4v-size-m 8 --spec-ngram-map-k4v-min-hits 2 --spec-draft-n-max 64
 ```
 
 ### n-gram Mod (`ngram-mod`)
@@ -183,7 +185,7 @@ Currently, a single hash pool is shared across all server slots, so different re
 # - MoEs require long drafts
 # - dense models: can reduce `--spec-ngram-mod-n-min` and `--spec-ngram-mod-n-max`
 
-llama-server ... --spec-type ngram-mod --spec-ngram-mod-n-match 24 --spec-ngram-mod-n-min 48 --spec-ngram-mod-n-max 64
+strix-server ... --spec-type ngram-mod --spec-ngram-mod-n-match 24 --spec-ngram-mod-n-min 48 --spec-ngram-mod-n-max 64
 ```
 
 Applications:
@@ -214,7 +216,7 @@ Unsupported samplers and device layouts fall back to CPU sampling. Tensor split 
 
 ### Synthetic Acceptance
 
-`llama-server` and `llama-cli` can replace normal speculative verification with synthetic decisions for benchmarking. The generated output is not valid model output because accepted draft tokens do not have to match the target model.
+`strix-server` and `llama-cli` can replace normal speculative verification with synthetic decisions for benchmarking. The generated output is not valid model output because accepted draft tokens do not have to match the target model.
 
 Use exactly one of these options:
 
@@ -375,12 +377,12 @@ Specifies a comma-separated list of speculative decoding types to use.
 
 **Example:** Server-instance used to refactor source code.
 ```bash
-./llama-server [...] --spec-type ngram-simple
+./strix-server [...] --spec-type ngram-simple
 ```
 
 **Example:** Multiple speculative implementations.
 ```bash
-./llama-server [...] --spec-type ngram-mod,ngram-map-k4v
+./strix-server [...] --spec-type ngram-mod,ngram-map-k4v
 ```
 
 ### `--spec-ngram-*-size-n N`
@@ -446,4 +448,4 @@ statistics ngram_map_k: #calls(b,g,a) = 6 1690 26, #gen drafts = 26, #acc drafts
 ## Benchmarking
 
 To measure the end-to-end effect of speculative decoding (throughput, latency, and draft acceptance) across diverse prompts, see the SPEED-Bench client in [tools/server/bench/speed-bench](../tools/server/bench/speed-bench/README.md).
-It runs against a running `llama-server` and can compare a baseline run against a speculative-decoding run.
+It runs against a running `strix-server` and can compare a baseline run against a speculative-decoding run.

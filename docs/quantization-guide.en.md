@@ -67,7 +67,7 @@ build/bin/llama-quantize --allow-requantize <source.gguf> <output.gguf> Q8_0_ROC
 
 ## GPU compute paths
 
-The fp8 family (Q2_0/Q3_0/Q6_0/Q8_0_ROCMFPX) GPU compute paths (MMVQ + MMQ) are enabled on RDNA3.5 (gfx1151), with a branch-free hot-path decode since v2026.9.22 (Q8 prefill now matches/beats std Q8_0); other architectures fall back to dequant + hipBLAS (functional, slower).
+The fp8 family (Q2_0/Q3_0/Q6_0/Q8_0_ROCMFPX) GPU compute paths (MMVQ + MMQ) are enabled on RDNA3.5 (gfx1151), with a branch-free hot-path decode since v0.2.5 (2026-09-21) (Q8 prefill now matches/beats std Q8_0); other architectures fall back to dequant + hipBLAS (functional, slower).
 
 ## Known issues
 

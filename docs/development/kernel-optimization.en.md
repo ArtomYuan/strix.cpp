@@ -6,7 +6,7 @@ Records of kernel-level optimizations applied to the ROCmFPX / ROCmFP4 quantizat
 
 ---
 
-## 1. Branch-free hot-path ue4m3 scale decode (v2026.9.22)
+## 1. Branch-free hot-path ue4m3 scale decode (v0.2.5, 2026-09-21)
 
 ### 1.1 Problem
 
@@ -95,7 +95,7 @@ test-backend-ops test -o MUL_MAT -p "rocmfp4"   # 24/24
 ### 1.8 Delivery
 
 - Commits: `0347fac53` (code), `f46544c29` (README measured-performance refresh)
-- Version: **v2026.9.22 (v0.2.5)** (see the `[v2026.9.22]` entry in the changelog)
+- Version: **v0.2.5 (2026-09-21)** (the `v2026.9.22` tag was renamed; see the `[v0.2.5]` entry in the changelog)
 
 ---
 
@@ -143,7 +143,7 @@ test-backend-ops perf -o FLASH_ATTN_EXT -p "hsk=256,hsv=256,nh=4,nr23=\[6,1\],kv
 ### 2.7 Delivery
 
 - Commits: `43ea02cb3` (config split), `c57487a5b` (FA vector gate), `6d4fc573a` (test coverage), `0eb0adcf4` (llama-bench types)
-- Version: **v1.0.0 (v0.2.7)**
+- Version: **v1.0.0 (2026-10-17)** (there is no `v0.2.7` tag; the 2026-09 line ends at `v0.2.6`)
 
 ---
 
@@ -387,7 +387,7 @@ Conclusion: with speculation the verification batch computes several tokens at o
 
 **Recommendation.** Depth 6 for short contexts, depth 3 for long ones; add q4_0 KV when another notch is needed. Do not treat depth 8 as "more aggressive, therefore better" - measured acceptance collapses to 0.6% and only overhead remains.
 
-## 8. MTP with multiple sequences: never mix prompt and decode batches (v1.0.4)
+## 8. MTP with multiple sequences: never mix prompt and decode batches (v1.0.4; v1.1.0 adds the contiguity check)
 
 **Problem.** Speculative decoding was fine with one sequence (54%-59% acceptance), but two concurrent sequences fell to 2%-6%, and four or more were close to zero. From `--spec-draft-n-max 4` the output also degenerated into ` - - - - `. v1.0.3 serialised speculative slots as a workaround: correct output, but multi-user throughput suffered.
 
@@ -405,7 +405,7 @@ Conclusion: with speculation the verification batch computes several tokens at o
 | 4-way, depth 2 | 75.5%-100% | ~109 t/s total | yes |
 | 5-way, depth 1 | 80%-100% | ~115 t/s total | yes |
 
-**Boundary.** This is a root-cause fix, not a bypass: multi-sequence speculative decoding batches again, and the old boundary (crash once the verification batch exceeded 8 rows) is gone. Prompt and decode batches are never mixed - their per-sequence token counts differ, so they never belonged in one batch; two prompt requests still batch. `process()` now also verifies that each sequence's tokens form a contiguous run; unequal run lengths are valid (slots can carry different draft lengths), and only interleaved batches are rejected.
+**Boundary.** This is a root-cause fix, not a bypass: multi-sequence speculative decoding batches again, and the old boundary (crash once the verification batch exceeded 8 rows) is gone. Prompt and decode batches are never mixed - their per-sequence token counts differ, so they never belonged in one batch; two prompt requests still batch. Since v1.1.0, `process()` also verifies that each sequence's tokens form a contiguous run; unequal run lengths are valid (slots can carry different draft lengths), and only interleaved batches are rejected.
 
 ## Appendix: entry structure (follow for future kernel-level changes)
 

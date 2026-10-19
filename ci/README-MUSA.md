@@ -5,7 +5,7 @@ Assuming `$PWD` is the root of the `llama.cpp` repository, follow these steps to
 ### 1. Create a local directory to store cached models, configuration files and venv:
 
 ```bash
-mkdir -p $HOME/llama.cpp/ci-cache
+mkdir -p $HOME/strix.cpp/ci-cache
 ```
 
 ### 2. Create a local directory to store CI run results:
@@ -18,7 +18,7 @@ mkdir -p $HOME/llama.cpp/ci-results
 
 ```bash
 docker run --privileged -it \
-    -v $HOME/llama.cpp/ci-cache:/ci-cache \
+    -v $HOME/strix.cpp/ci-cache:/ci-cache \
     -v $HOME/llama.cpp/ci-results:/ci-results \
     -v $PWD:/ws -w /ws \
     registry.mthreads.com/mcconline/musa_sdk:5.2.0-devel-ubuntu22.04-s5000

@@ -134,7 +134,7 @@ While semantically correct, the syntax `x? x? x?.... x?` (with N repetitions) ma
 
 You can use GBNF grammars:
 
-- In [llama-server](../tools/server)'s completion endpoints, passed as the `grammar` body field
+- In [strix-server](../tools/server)'s completion endpoints, passed as the `grammar` body field
 - In [llama-cli](../tools/cli) and [llama-completion](../tools/completion), passed as the `--grammar` & `--grammar-file` flags
 - With [test-gbnf-validator](../tests/test-gbnf-validator.cpp), to test them against strings.
 
@@ -142,7 +142,7 @@ You can use GBNF grammars:
 
 `llama.cpp` supports converting a subset of https://json-schema.org/ to GBNF grammars:
 
-- In [llama-server](../tools/server):
+- In [strix-server](../tools/server):
     - For any completion endpoints, passed as the `json_schema` body field
     - For the `/chat/completions` endpoint, passed inside the `response_format` body field (e.g. `{"type", "json_object", "schema": {"items": {}}}` or `{ type: "json_schema", json_schema: {"schema": ...} }`)
 - In [llama-cli](../tools/cli) and [llama-completion](../tools/completion), passed as the `--json` / `-j` flag

@@ -2,7 +2,7 @@
 
 This document describes **what we plan to do next**. For what has already shipped, see [CHANGELOG.en.md](CHANGELOG.en.md); item-by-item evidence lives in the kernel optimization record and in each release's notes.
 
-Current version: **v1.0.1 (GEMM K tile, duplicate-expert MoE, SSM conv without the concat; not yet tagged)**
+Current version: **v1.1.0 (2026-10-19, strix-server rename + spec-batch contiguity check)**; the GEMM/MoE/SSM changes shipped in v1.0.1
 
 The roadmap lists work in progress, not commitments — scope and order may change. What gets done first, and whether it gets done at all, is the maintainer's call.
 
@@ -62,8 +62,8 @@ Decode is currently level with the previous version. gufo's 1.7× comes from KV 
 
 ## Decide with us
 
-- **Production switch**: new lib `80d9cd` (K tile + MoE fix + SSM conv) → `~/strix.cpp/bin`, via full mirror + smoke test + rollback plan.
-- **Release**: whether to tag this change `v1.0.1` and write a Release.
+- **Production switch**: v1.1.0 (commit `309bfef16`) → `~/strix.cpp/bin`, via full mirror + smoke test + rollback plan.
+- **Release**: v1.0.1 through v1.1.0 are tagged and released; next is scope and timing for v1.2.0.
 - **What runs first**: the fp8 family for performance, or wiring work for fused quantization — the maintainer's call.
 
 ---

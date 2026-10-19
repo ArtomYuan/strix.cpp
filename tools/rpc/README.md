@@ -74,7 +74,7 @@ $ bin/ggml-rpc-server --device CUDA0 -p 50052
 ### Main host
 
 On the main host build `llama.cpp` with the backends for the local devices and add `-DGGML_RPC=ON` to the build options.
-Finally, when running `llama-cli` or `llama-server`, use the `--rpc` option to specify the host and port of each `ggml-rpc-server`:
+Finally, when running `llama-cli` or `strix-server`, use the `--rpc` option to specify the host and port of each `ggml-rpc-server`:
 
 ```bash
 $ llama-cli -hf ggml-org/gemma-3-1b-it-GGUF -ngl 99 --rpc 192.168.88.10:50052,192.168.88.11:50052

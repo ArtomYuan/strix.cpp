@@ -18,7 +18,7 @@ strix.cpp is an independently maintained llama.cpp branch. It does three things 
 
 ## Measured performance
 
-Same machine, same model, same quant, same flags; the control arm is the previous production build, `v1.0.0`:
+Same machine, same model, same quant, same flags; measured at the v1.0.2 release (v1.1.0 does not touch these kernel paths, so the numbers carry over), control arm `v1.0.0`:
 
 | Scenario (Qwen3.8-27B, Q4_0_ROCMFP4_FAST) | v1.0.0 | v1.0.2 | Delta |
 |:--|--:|--:|--:|
@@ -61,7 +61,7 @@ When the model ships a `nextn` layer, speculative decoding is available (only Qw
 build/bin/strix-server -m <model.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
 ```
 
-With the same prompt and seed the output is **byte-identical** to a non-speculative run, while generation goes from 14.0 to 37.9 t/s. Draft depth 8 and beyond collapses the acceptance rate to 0.6% and only adds overhead; do not use it. With multiple concurrent sequences decoding batches normally; prompt and decode batches are never mixed, since their per-sequence token counts differ. See [kernel optimization, section 6](docs/development/kernel-optimization.en.md) and [section 8](docs/development/kernel-optimization.en.md).
+With the same prompt and seed the output is **byte-identical** to a non-speculative run, while generation goes from 14.0 to 37.9 t/s. Draft depth 8 and beyond collapses the acceptance rate to 0.6% and only adds overhead; do not use it. With multiple concurrent sequences decoding batches normally; prompt and decode batches are never mixed, since their per-sequence token counts differ. See [kernel optimization, sections 6 and 8](docs/development/kernel-optimization.en.md); since v1.1.0 `process()` also rejects interleaved sequence batches, see CHANGELOG `[v1.1.0]`.
 
 ### Keep it running as a service
 

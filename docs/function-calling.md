@@ -1,7 +1,7 @@
 # Function Calling
 
 [chat.h](../common/chat.h) (https://github.com/ggml-org/llama.cpp/pull/9639) adds support for [OpenAI-style function calling](https://platform.openai.com/docs/guides/function-calling) and is used in:
-- `llama-server` when started w/ `--jinja` flag
+- `strix-server` when started w/ `--jinja` flag
 
 ## Universal support w/ Native & Generic handlers
 
@@ -289,40 +289,40 @@ Here are some models known to work (w/ chat template override when needed):
 ```shell
 # Native support:
 
-llama-server --jinja -fa -hf bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M
-llama-server --jinja -fa -hf bartowski/Mistral-Nemo-Instruct-2407-GGUF:Q6_K_L
-llama-server --jinja -fa -hf bartowski/Llama-3.3-70B-Instruct-GGUF:Q4_K_M
-llama-server --jinja -fa -hf ibm-granite/granite-4.1-3b-GGUF:Q4_K_M
+strix-server --jinja -fa -hf bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M
+strix-server --jinja -fa -hf bartowski/Mistral-Nemo-Instruct-2407-GGUF:Q6_K_L
+strix-server --jinja -fa -hf bartowski/Llama-3.3-70B-Instruct-GGUF:Q4_K_M
+strix-server --jinja -fa -hf ibm-granite/granite-4.1-3b-GGUF:Q4_K_M
 
 # Native support for DeepSeek R1 works best w/ our template override (official template is buggy, although we do work around it)
 
-llama-server --jinja -fa -hf bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF:Q6_K_L \
+strix-server --jinja -fa -hf bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF:Q6_K_L \
     --chat-template-file models/templates/llama-cpp-deepseek-r1.jinja
 
-llama-server --jinja -fa -hf bartowski/DeepSeek-R1-Distill-Qwen-32B-GGUF:Q4_K_M \
+strix-server --jinja -fa -hf bartowski/DeepSeek-R1-Distill-Qwen-32B-GGUF:Q4_K_M \
     --chat-template-file models/templates/llama-cpp-deepseek-r1.jinja
 
 # Native support requires the right template for these GGUFs:
 
-llama-server --jinja -fa -hf bartowski/functionary-small-v3.2-GGUF:Q4_K_M
+strix-server --jinja -fa -hf bartowski/functionary-small-v3.2-GGUF:Q4_K_M
     --chat-template-file models/templates/meetkai-functionary-medium-v3.2.jinja
 
-llama-server --jinja -fa -hf bartowski/Hermes-2-Pro-Llama-3-8B-GGUF:Q4_K_M \
+strix-server --jinja -fa -hf bartowski/Hermes-2-Pro-Llama-3-8B-GGUF:Q4_K_M \
     --chat-template-file models/templates/NousResearch-Hermes-2-Pro-Llama-3-8B-tool_use.jinja
 
-llama-server --jinja -fa -hf bartowski/Hermes-3-Llama-3.1-8B-GGUF:Q4_K_M \
+strix-server --jinja -fa -hf bartowski/Hermes-3-Llama-3.1-8B-GGUF:Q4_K_M \
     --chat-template-file models/templates/NousResearch-Hermes-3-Llama-3.1-8B-tool_use.jinja
 
-llama-server --jinja -fa -hf bartowski/firefunction-v2-GGUF -hff firefunction-v2-IQ1_M.gguf \
+strix-server --jinja -fa -hf bartowski/firefunction-v2-GGUF -hff firefunction-v2-IQ1_M.gguf \
     --chat-template-file models/templates/fireworks-ai-llama-3-firefunction-v2.jinja
 
-llama-server --jinja -fa -hf bartowski/c4ai-command-r7b-12-2024-GGUF:Q6_K_L \
+strix-server --jinja -fa -hf bartowski/c4ai-command-r7b-12-2024-GGUF:Q6_K_L \
     --chat-template-file models/templates/CohereForAI-c4ai-command-r7b-12-2024-tool_use.jinja
 
 # Generic format support
-llama-server --jinja -fa -hf bartowski/phi-4-GGUF:Q4_0
-llama-server --jinja -fa -hf bartowski/gemma-2-2b-it-GGUF:Q8_0
-llama-server --jinja -fa -hf bartowski/c4ai-command-r-v01-GGUF:Q2_K
+strix-server --jinja -fa -hf bartowski/phi-4-GGUF:Q4_0
+strix-server --jinja -fa -hf bartowski/gemma-2-2b-it-GGUF:Q8_0
+strix-server --jinja -fa -hf bartowski/c4ai-command-r-v01-GGUF:Q2_K
 ```
 
 To get the official template from original HuggingFace repos, you can use [scripts/get_chat_template.py](../scripts/get_chat_template.py) (see examples invocations in [models/templates/README.md](../models/templates/README.md))

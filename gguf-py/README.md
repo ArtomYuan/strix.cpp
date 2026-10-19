@@ -36,7 +36,7 @@ pip install gguf[gui]
 Maintainers who participate in development of this package are advised to install it in editable mode:
 
 ```sh
-cd /path/to/llama.cpp/gguf-py
+cd /path/to/strix.cpp/gguf-py
 
 pip install --editable .
 ```

@@ -1,4 +1,6 @@
-# Install pre-built version of llama.cpp
+# Install llama.cpp (upstream reference)
+
+> **strix.cpp does not publish pre-built packages.** Build from source with [README.md](../README.md) / [CONTRIBUTING.md](../CONTRIBUTING.md). The package-manager commands below install upstream llama.cpp, not this fork.
 
 | Install via | Windows | Mac  | Linux |
 |-------------|---------|------|-------|

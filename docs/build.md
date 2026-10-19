@@ -1,4 +1,6 @@
-# Build llama.cpp locally
+# Build strix.cpp locally
+
+> This page is adapted from upstream llama.cpp. For the verified strix.cpp build (ROCm / gfx1151), use the command in [README.md](../README.md) or [CONTRIBUTING.md](../CONTRIBUTING.md). The platform notes below are retained for reference.
 
 The main product of this project is the `llama` library. Its C-style interface can be found in [include/llama.h](../include/llama.h).
 
@@ -7,8 +9,8 @@ The project also includes many example programs and tools using the `llama` libr
 **To get the Code:**
 
 ```bash
-git clone https://github.com/ggml-org/llama.cpp
-cd llama.cpp
+git clone https://github.com/ArtomYuan/strix.cpp
+cd strix.cpp
 ```
 
 The following sections describe how to build with different backends and options.
@@ -292,7 +294,7 @@ You may set the [cuda environmental variables](https://docs.nvidia.com/cuda/cuda
 
 ```bash
 # Use `CUDA_VISIBLE_DEVICES` to hide the first compute device.
-CUDA_VISIBLE_DEVICES="-0" ./build/bin/llama-server --model /srv/models/llama.gguf
+CUDA_VISIBLE_DEVICES="-0" ./build/bin/strix-server --model /srv/models/llama.gguf
 ```
 
 #### CUDA_SCALE_LAUNCH_QUEUES
@@ -377,7 +379,7 @@ You may set the [musa environmental variables](https://docs.mthreads.com/musa-sd
 
 ```bash
 # Use `MUSA_VISIBLE_DEVICES` to hide the first compute device.
-MUSA_VISIBLE_DEVICES="-0" ./build/bin/llama-server --model /srv/models/llama.gguf
+MUSA_VISIBLE_DEVICES="-0" ./build/bin/strix-server --model /srv/models/llama.gguf
 ```
 
 ### Unified Memory
@@ -397,7 +399,7 @@ You can download it from your Linux distro's package manager or from here: [ROCm
       && cmake --build build --config Release -- -j 16
   ```
 
-  Note: `GPU_TARGETS` is optional, omitting it will build the code for all GPUs in the current system.
+  Note: `GPU_TARGETS` is optional, omitting it will build the code for all GPUs in the current system. For strix.cpp on Strix Halo use `-DAMDGPU_TARGETS=gfx1151` (see README).
 
   Note that if you get the following error:
   ```
@@ -778,8 +780,8 @@ Then build llama.cpp with OpenCL enabled,
 ```sh
 cd ~/dev/llm
 
-git clone https://github.com/ggml-org/llama.cpp && \
-cd llama.cpp && \
+git clone https://github.com/ArtomYuan/strix.cpp && \
+cd strix.cpp && \
 mkdir build-android && cd build-android
 
 cmake .. -G Ninja \

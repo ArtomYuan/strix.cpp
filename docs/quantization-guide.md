@@ -67,7 +67,7 @@ build/bin/llama-quantize --allow-requantize <源模型.gguf> <输出.gguf> Q8_0_
 
 ## GPU 计算路径说明
 
-fp8 家族（Q2_0/Q3_0/Q6_0/Q8_0_ROCMFPX）的 GPU 计算路径（MMVQ + MMQ）已在 RDNA3.5（gfx1151）启用，热路径解码自 v2026.9.22 起完成无分支优化（Q8 档 prefill 追平/反超标准 Q8_0）；其他架构自动回退 dequant + hipBLAS（可用、较慢）。
+fp8 家族（Q2_0/Q3_0/Q6_0/Q8_0_ROCMFPX）的 GPU 计算路径（MMVQ + MMQ）已在 RDNA3.5（gfx1151）启用，热路径解码自 v0.2.5（2026-09-21）起完成无分支优化（Q8 档 prefill 追平/反超标准 Q8_0）；其他架构自动回退 dequant + hipBLAS（可用、较慢）。
 
 ## 已知问题
 

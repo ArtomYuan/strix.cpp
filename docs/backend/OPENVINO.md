@@ -82,7 +82,7 @@ However, all the tools coverage across all devices is not uniform and exhaustive
 - llama-embedding
 - llama-perplexity
 - llama-run
-- llama-server
+- strix-server
 - llama-simple
 
 ## Validated Models
@@ -641,7 +641,7 @@ docker build --target=full -t llama-openvino:full -f .devops/openvino.Dockerfile
 # Build a minimal CLI-only image containing just the llama-cli executable.
 docker build --target=light -t llama-openvino:light -f .devops/openvino.Dockerfile .
 
-# Builds a server-only image with llama-server executable, health check endpoint, and REST API support.
+# Builds a server-only image with strix-server executable, health check endpoint, and REST API support.
 docker build --target=server -t llama-openvino:server -f .devops/openvino.Dockerfile .
 
 # If you are behind a proxy:
@@ -671,7 +671,7 @@ llama-openvino:light --no-warmup -c 1024 -m /models/Llama-3.2-1B-Instruct-Q4_K_M
 
 Run Llama.cpp Server with OpenVINO Backend.
 > [!NOTE]
-> `llama-server` with OpenVINO backend supports only one chat session/thread, when `GGML_OPENVINO_STATEFUL_EXECUTION=1` is enabled.
+> `strix-server` with OpenVINO backend supports only one chat session/thread, when `GGML_OPENVINO_STATEFUL_EXECUTION=1` is enabled.
 
 ```bash
 # Run the llama-openvino:server Docker container (CPU)
@@ -689,8 +689,8 @@ docker run --rm -it -v ~/models:/models \
 -p 8080:8080 --env=GGML_OPENVINO_DEVICE=NPU \
 llama-openvino:server --no-warmup -c 1024 -m /models/Llama-3.2-1B-Instruct-Q4_K_M.gguf --host 0.0.0.0
 
-# Or Using llama-server executable
-./build/ReleaseOV/bin/llama-server -m ~/models/Llama-3.2-1B-Instruct-Q4_K_M.gguf --port 8080 -c 1024
+# Or Using strix-server executable
+./build/ReleaseOV/bin/strix-server -m ~/models/Llama-3.2-1B-Instruct-Q4_K_M.gguf --port 8080 -c 1024
 
 # Option 1: Open your browser to http://localhost:8080 to access the web UI for the llama.cpp server.
 # Option 2: In a NEW terminal, test the server with curl
@@ -788,18 +788,18 @@ build\ReleaseOV\bin\llama-simple.exe -m "C:\models\Llama-3.2-1B-Instruct-Q4_K_M.
 
 - `llama-bench`: requires `-fa 1` (flash-attention).
 - `llama-cli --context-shift`: stateless only (`GGML_OPENVINO_STATEFUL_EXECUTION=0`). In stateful mode the KV cache is owned by the OpenVINO model and cannot be shifted externally.
-- `llama-server`: only one chat session/thread when `GGML_OPENVINO_STATEFUL_EXECUTION=1`.
+- `strix-server`: only one chat session/thread when `GGML_OPENVINO_STATEFUL_EXECUTION=1`.
 
 **GPU-specific**
 
-- `llama-server -np > 1`: concurrent requests are batched together, which may slightly reduce per-request throughput.
+- `strix-server -np > 1`: concurrent requests are batched together, which may slightly reduce per-request throughput.
 
 **NPU-specific**
 
 - Default context resolves to the model's training context (e.g. 131072 for Llama 3.2 1B), which can OOM or fail or degrade performance on NPU. Inspect the resolved value with `-lv 3`.
   - **Workaround:** Pass an explicit `-c <N>`, e.g. `-c 1024`.
 - NPU device uses a static graph with a fixed prefill chunk size (defaults to 256), configurable with `GGML_OPENVINO_PREFILL_CHUNK_SIZE`. Large prefill/batch settings may need tuning.
-- `llama-server -np > 1` (multiple parallel sequences) is not supported.
+- `strix-server -np > 1` (multiple parallel sequences) is not supported.
 - `llama-perplexity`: requires `-b 512` or smaller.
 
 > [!NOTE]

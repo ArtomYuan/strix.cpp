@@ -249,8 +249,8 @@ For models with SentenceTransformer layers, use the `-st` verification target:
 This convenience target automatically runs both the original model with SentenceTransformer
 and the converted model with pooling enabled, then compares the results.
 
-### llama-server verification
-To verify that the converted model works with llama-server, the following
+### strix-server verification
+To verify that the converted model works with strix-server, the following
 command can be used:
 ```console
 (venv) $ make embedding-start-embedding-server
@@ -362,7 +362,7 @@ An embedding model can be created using the following command:
 (venv) $ make hf-create-model-embedding MODEL_NAME='TestEmbeddingModel' NAMESPACE="danbev" ORIGINAL_BASE_MODEL="some-base-model"
 ```
 The only difference is that the model card for an embedding model will be different
-with regards to the llama-server command and also how to access/call the embedding
+with regards to the strix-server command and also how to access/call the embedding
 endpoint.
 
 ### Upload a GGUF model to model repository

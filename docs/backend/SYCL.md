@@ -400,7 +400,7 @@ Choose one of following methods to run.
 ./examples/sycl/test.sh
 ```
 
-- Run llama-server:
+- Run strix-server:
 
 ```sh
 ./examples/sycl/start-svr.sh -m PATH/MODEL_FILE
@@ -712,7 +712,7 @@ Choose one of following methods to run.
 examples\sycl\win-test.bat
 ```
 
-- Run llama-server:
+- Run strix-server:
 
 ```
 examples\sycl\win-start-svr.bat -m PATH\MODEL_FILE
@@ -940,7 +940,7 @@ Pass these via `CXXFLAGS` or add a one-off `#define` to enable a flag on the spo
   1. Detect the devices in your running time.
   ```
   source /opt/intel/oneapi/setvars.sh
-  ./build/bin/llama-server --list-devices
+  ./build/bin/strix-server --list-devices
 
   or
   ./build/bin/llama-cli --list-devices
@@ -957,7 +957,7 @@ Pass these via `CXXFLAGS` or add a one-off `#define` to enable a flag on the spo
 
   2. Set the iGPU and dGPU
 
-  Set the iGPU and dGPU by `./build/bin/llama-server --device SYCL0,SYCL1,SYCLxxx`.
+  Set the iGPU and dGPU by `./build/bin/strix-server --device SYCL0,SYCL1,SYCLxxx`.
 
 
 ### **GitHub contribution**:

@@ -1,5 +1,7 @@
 # ROCmFPx Experimental Formats
 
+> Historical design notes. Current status and usage: [docs/quantization-guide.md](../../docs/quantization-guide.md).
+
 This folder contains the reference layer for the proposed ROCmFP3, ROCmFP6, and
 ROCmFP8 quantization family. It is intentionally separate from `ggml/rocmfp4/`
 so the promoted ROCmFP4 GGUF formats and kernels are not affected while the new
@@ -31,7 +33,7 @@ The ROCmFP4 Codebook10 levels are not reused by FP3/FP6/FP8 directly:
 to `31`, and `ROCmFP8` uses signed int8 levels clamped to `[-127, 127]`.
 What is inherited is the block/scale/kernel/dequant contract.
 
-Current status (June 16, 2026):
+Current status (as of v1.1.0, 2026-10-19):
 - CPU reference quantize/dequantize exists for all three formats.
 - `Q3_0_ROCMFPX`, `Q6_0_ROCMFPX`, and `Q8_0_ROCMFPX` are registered as
   experimental GGUF tensor types.
@@ -41,7 +43,7 @@ Current status (June 16, 2026):
 - Generic baseline quant presets now include lean coherency routing. These
   preset names are not release recipe identities; released artifact mappings
   and architecture-qualified recipe IDs live in
-  [`docs/recipes/`](../../docs/recipes/README.md):
+  [`docs/quantization-guide.md`](../../docs/quantization-guide.md):
   - `Q3_0_ROCMFPX`: selective `Q5_K` on attention Q/O and early K/V, boosted
     FFN-down at `Q5_K`, selective FFN-gate at `Q6_0_ROCMFPX`, bulk FFN-up on
     `Q3_0_ROCMFPX`, embeddings/output at `Q4_0_ROCMFP4_FAST`.
@@ -103,7 +105,7 @@ timeout 180 build-strix-rocmfp4/bin/test-backend-ops test -o MUL_MAT,GET_ROWS,CP
 Qwen3 BF16 coherency and decode-speed gates:
 
 ```bash
-MODEL=/home/caf/strix-fp4/models/rocmfpx-bf16-tests/Qwen3-0.6B-Q3_0_ROCMFPX_COHERENT-LEAN.gguf BACKEND=ROCm0 scripts/check-rocmfpx-qwen-coherency.sh
+MODEL=${MODELS_DIR:-$HOME/models}/rocmfpx-bf16-tests/Qwen3-0.6B-Q3_0_ROCMFPX_COHERENT-LEAN.gguf BACKEND=ROCm0 scripts/check-rocmfpx-qwen-coherency.sh
 MODEL=/home/caf/strix-fp4/models/rocmfpx-bf16-tests/Qwen3-0.6B-Q3_0_ROCMFPX_COHERENT-LEAN.gguf BACKEND=ROCm0 scripts/check-rocmfpx-qwen-bench.sh
 MODEL=/home/caf/strix-fp4/models/rocmfpx-bf16-tests/Qwen3-0.6B-Q3_0_ROCMFPX_COHERENT-LEAN.gguf BACKEND=ROCm0 scripts/check-rocmfpx-qwen-strict-json.sh
 ```

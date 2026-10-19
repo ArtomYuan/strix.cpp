@@ -52,4 +52,4 @@ Inference on Linux or Mac
 ./build/bin/llama-mtmd-cli -m ../MiniCPM-V-4.7/ggml-model-Q4_K_M.gguf --mmproj ../MiniCPM-V-4.7/mmproj-model-f16.gguf --jinja
 ```
 
-The chat template enables thinking by default. Pass `--chat-template-kwargs '{"enable_thinking": false}'` to `llama-server` to turn it off.
+The chat template enables thinking by default. Pass `--chat-template-kwargs '{"enable_thinking": false}'` to `strix-server` to turn it off.
