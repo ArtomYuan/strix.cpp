@@ -354,7 +354,7 @@ To use this feature, start the server with `--tools all`. You can also enable on
 
 ### MCP servers
 
-Besides the built-in tools, the server can expose tools coming from MCP servers, added in [#26062](https://github.com/ggml-org/llama.cpp/pull/26062). Only the stdio transport is supported: such a server is a child process reading JSON-RPC messages on its stdin and writing replies on its stdout, so nothing has to be started or maintained outside `llama-server`.
+Besides the built-in tools, the server can expose tools coming from MCP servers, added in [#26062](https://github.com/ggml-org/llama.cpp/pull/26062). Only the stdio transport is supported: such a server is a child process reading JSON-RPC messages on its stdin and writing replies on its stdout, so nothing has to be started or maintained outside `strix-server`.
 
 Servers are declared in a Cursor-compatible JSON file:
 
@@ -367,7 +367,7 @@ Servers are declared in a Cursor-compatible JSON file:
 ```
 
 ```sh
-llama-server -m model.gguf --mcp-servers-config mcp.json
+strix-server -m model.gguf --mcp-servers-config mcp.json
 ```
 
 The same JSON can be passed inline with `--mcp-servers-json`. Each entry under `mcpServers` accepts:
@@ -406,26 +406,26 @@ Related flags: `--cors-origins`, `--cors-methods`, `--cors-headers`, `--cors-cre
 
 ## Build
 
-`llama-server` is built alongside everything else from the root of the project
+`strix-server` is built alongside everything else from the root of the project
 
 - Using `CMake`:
 
   ```bash
   cmake -B build
-  cmake --build build --config Release -t llama-server
+  cmake --build build --config Release -t strix-server
   ```
 
-  Binary is at `./build/bin/llama-server`
+  Binary is at `./build/bin/strix-server`
 
 ## Build with SSL
 
-`llama-server` can also be built with SSL support using OpenSSL 3
+`strix-server` can also be built with SSL support using OpenSSL 3
 
 - Using `CMake`:
 
   ```bash
   cmake -B build -DLLAMA_OPENSSL=ON
-  cmake --build build --config Release -t llama-server
+  cmake --build build --config Release -t strix-server
   ```
 
 ## Quick Start
@@ -435,13 +435,13 @@ To get started right away, run the following command, making sure to use the cor
 ### Unix-based systems (Linux, macOS, etc.)
 
 ```bash
-./llama-server -m models/7B/ggml-model.gguf -c 2048
+./strix-server -m models/7B/ggml-model.gguf -c 2048
 ```
 
 ### Windows
 
 ```powershell
-llama-server.exe -m models\7B\ggml-model.gguf -c 2048
+strix-server.exe -m models\7B\ggml-model.gguf -c 2048
 ```
 
 The above command will start a server that by default listens on `127.0.0.1:9931`.
@@ -1839,12 +1839,12 @@ For further documentation about this endpoint, please refer to [server internal 
 
 ## Using multiple models
 
-`llama-server` can be launched in a **router mode** that exposes an API for dynamically loading and unloading models. The main process (the "router") automatically forwards each request to the appropriate model instance.
+`strix-server` can be launched in a **router mode** that exposes an API for dynamically loading and unloading models. The main process (the "router") automatically forwards each request to the appropriate model instance.
 
-To start in router mode, launch `llama-server` **without specifying any model**:
+To start in router mode, launch `strix-server` **without specifying any model**:
 
 ```sh
-llama-server
+strix-server
 ```
 
 ### Model sources
@@ -1857,7 +1857,7 @@ There are 3 possible sources for model files:
 By default, the router looks for models in the cache. You can add Hugging Face models to the cache with:
 
 ```sh
-llama-server -hf <user>/<model>:<tag>
+strix-server -hf <user>/<model>:<tag>
 ```
 
 *The server must be restarted after adding a new model.*
@@ -1865,7 +1865,7 @@ llama-server -hf <user>/<model>:<tag>
 Alternatively, you can point the router to a local directory containing your GGUF files using `--models-dir`. Example command:
 
 ```sh
-llama-server --models-dir ./models_directory
+strix-server --models-dir ./models_directory
 ```
 
 If the model contains multiple GGUF (for multimodal or multi-shard), files should be put into a subdirectory. The directory structure should look like this:
@@ -1893,7 +1893,7 @@ models_directory
 You may also specify default arguments that will be passed to every model instance:
 
 ```sh
-llama-server -ctx 8192 -n 1024 -np 2
+strix-server -ctx 8192 -n 1024 -np 2
 ```
 
 Note: model instances inherit both command line arguments and environment variables from the router server.
@@ -1905,7 +1905,7 @@ Alternatively, you can also add GGUF based preset (see next section)
 Model presets allow advanced users to define custom configurations using an `.ini` file:
 
 ```sh
-llama-server --models-preset ./my-models.ini
+strix-server --models-preset ./my-models.ini
 ```
 
 Each section in the file defines a new preset. Keys within a section correspond to command-line arguments (without leading dashes). For example, the argument `--n-gpu-layers 123` is written as `n-gpu-layers = 123`.
@@ -1950,7 +1950,7 @@ model = /Users/abc/my-awesome-model-Q4_K_M.gguf
 Note: some arguments are controlled by router (e.g., host, port, API key, HF repo, model alias). They will be removed or overwritten upon loading.
 
 The precedence rule for preset options is as follows:
-1. **Command-line arguments** passed to `llama-server` (highest priority)
+1. **Command-line arguments** passed to `strix-server` (highest priority)
 2. **Model-specific options** defined in the preset file (e.g. `[ggml-org/MY-MODEL...]`)
 3. **Global options** defined in the preset file (`[*]`)
 
@@ -1996,7 +1996,7 @@ Listing all models in cache. The model metadata will also include a field to ind
     "path": "/Users/REDACTED/Library/Caches/llama.cpp/ggml-org_gemma-3-4b-it-GGUF_gemma-3-4b-it-Q4_K_M.gguf",
     "status": {
       "value": "loaded",
-      "args": ["llama-server", "-ctx", "4096"]
+      "args": ["strix-server", "-ctx", "4096"]
     },
     "architecture": {
       "input_modalities": [
@@ -2060,14 +2060,14 @@ The `status` object can be:
 ```json
 "status": {
   "value": "loading",
-  "args": ["llama-server", "-ctx", "4096"]
+  "args": ["strix-server", "-ctx", "4096"]
 }
 ```
 
 ```json
 "status": {
   "value": "unloaded",
-  "args": ["llama-server", "-ctx", "4096"],
+  "args": ["strix-server", "-ctx", "4096"],
   "failed": true,
   "exit_code": 1
 }
@@ -2076,14 +2076,14 @@ The `status` object can be:
 ```json
 "status": {
   "value": "loaded",
-  "args": ["llama-server", "-ctx", "4096"]
+  "args": ["strix-server", "-ctx", "4096"]
 }
 ```
 
 ```json
 "status": {
   "value": "sleeping",
-  "args": ["llama-server", "-ctx", "4096"]
+  "args": ["strix-server", "-ctx", "4096"]
 }
 ```
 
@@ -2274,7 +2274,7 @@ Response:
 
 ## API errors
 
-`llama-server` returns errors in the same format as OAI: https://github.com/openai/openai-openapi
+`strix-server` returns errors in the same format as OAI: https://github.com/openai/openai-openapi
 
 Example of an error:
 
@@ -2352,7 +2352,7 @@ Apart from error types supported by OAI, we also have custom types that are spec
 You can specify default preferences for the web UI using `--ui-config <JSON config>` or `--ui-config-file <path to JSON config>`. For example, you can disable pasting long text as attachments and enable rendering Markdown in user messages with this command:
 
 ```bash
-./llama-server -m model.gguf --ui-config '{"pasteLongTextToFileLen": 0, "renderUserContentAsMarkdown": true}'
+./strix-server -m model.gguf --ui-config '{"pasteLongTextToFileLen": 0, "renderUserContentAsMarkdown": true}'
 ```
 
 > **Note:** The old flags `--webui-config` and `--webui-config-file` are deprecated but still work as aliases.

@@ -141,7 +141,7 @@ Note:
 
 ## Add a decision model
 
-A decision model answers typed questions about a state in one forward pass. It is served by `POST /v1/systemone` in `llama-server`, see [the server docs](../../tools/server/README.md).
+A decision model answers typed questions about a state in one forward pass. It is served by `POST /v1/systemone` in `strix-server`, see [the server docs](../../tools/server/README.md).
 
 The conversion is the same as above, but a new model needs its own `DecisionType` in `gguf-py/gguf/constants.py`. See the existing models and follow the pattern.
 
