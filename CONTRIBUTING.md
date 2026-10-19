@@ -99,3 +99,9 @@ PR 提交前请自查：
 - 建议先在 issue / 讨论中沟通想法，再投入大规模代码工作
 
 再次感谢你的贡献！
+
+## 版本与发布
+
+- 版本号：`vMAJOR.MINOR.PATCH`。
+- GitHub Release 名称与 CHANGELOG 标题统一为 `vX.Y.Z (YYYY-MM-DD)`。
+- git tag 只用版本号，不附带日期。
