@@ -28,6 +28,40 @@
 #define SPC_CNT(fmt, ...) LOG_CNT(""              fmt,               __VA_ARGS__)
 
 #define SPEC_VOCAB_MAX_SIZE_DIFFERENCE  128
+
+bool common_speculative_batch_is_contiguous(const common_batch & batch, uint32_t n_seq) {
+    const int32_t n_tokens = batch.size();
+    if (n_tokens <= 0 || n_seq <= 1) {
+        return true;
+    }
+
+    std::vector<int32_t> count(n_seq, 0);
+    std::vector<int32_t> beg  (n_seq, -1);
+    std::vector<int32_t> end  (n_seq, -1);
+
+    for (int32_t k = 0; k < n_tokens; ++k) {
+        const llama_seq_id seq_id = batch.tokens[k].seq_id;
+        if (seq_id < 0 || (uint32_t) seq_id >= n_seq) {
+            return false;
+        }
+        if (count[seq_id]++ == 0) {
+            beg[seq_id] = k;
+        }
+        end[seq_id] = k;
+    }
+
+    for (uint32_t s = 0; s < n_seq; ++s) {
+        if (count[s] == 0) {
+            continue;
+        }
+        // one contiguous run: the span must contain exactly this sequence's tokens
+        if (end[s] - beg[s] + 1 != count[s]) {
+            return false;
+        }
+    }
+
+    return true;
+}
 #define SPEC_VOCAB_CHECK_START_TOKEN_ID 5
 
 // Rebuild seq_id's draft sampler at the target's temperature: rejection weighs q against p, so
@@ -1580,6 +1614,12 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
         }
 
         const int32_t n_tokens = batch_in.size();
+
+        if (!common_speculative_batch_is_contiguous(batch_in, n_seq)) {
+            SPC_ERR("interleaved speculative batch (%d tokens, %u seqs); refusing to draft\n",
+                    n_tokens, n_seq);
+            return false;
+        }
 
         // remember the first and last batch index for each sequence
         std::fill(i_batch_beg.begin(), i_batch_beg.end(), -1);

@@ -5,6 +5,12 @@
 
 struct common_speculative;
 
+// true when every active sequence contributes one contiguous run of tokens.
+// the MTP draft h-row bookkeeping walks each sequence's run by batch position,
+// so an interleaved batch (0,1,0,1) cannot be drafted safely. unequal run lengths
+// are valid: slots can have different numbers of accepted/drafted tokens.
+bool common_speculative_batch_is_contiguous(const common_batch & batch, uint32_t n_seq);
+
 // comma separated list the provided types
 std::string common_speculative_type_name_str(const std::vector<enum common_speculative_type> & types);
 
