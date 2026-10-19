@@ -10,18 +10,6 @@ The roadmap lists work in progress, not commitments — scope and order may chan
 
 ## Next batch
 
-### The fp8 family's K tile: collect the money behind the gate
-
-**Area: ROCmFPX family (Q2/Q3/Q6/Q8)**
-
-Wiring the 512 K tile into ROCmFP4 made prefill 66% faster. The fp8 family still sits on 256, but inserting the same key makes `k=1024` results completely wrong — the tile size and the SRAM layout are bound together.
-
-- Rework the fp8 family's K block indexing/loaders (address by 256-element super-blocks)
-- Separate branch, separate numeric gate — never mixed into the already-verified version
-- Per-shape A/B; book the gains before talking end-to-end
-
-> Speed goes through the gate before it goes into the books.
-
 ### Fused activation quantization: drop the per-layer round trip
 
 **Area: prefill path (RMSNorm → MMQ)**
@@ -64,11 +52,11 @@ Decode is currently level with the previous version. gufo's 1.7× comes from KV 
 
 - **Production switch**: v1.1.0 (commit `309bfef16`) → `~/strix.cpp/bin`, via full mirror + smoke test + rollback plan.
 - **Release**: v1.0.1 through v1.1.0 are tagged and released; next is scope and timing for v1.2.0.
-- **What runs first**: the fp8 family for performance, or wiring work for fused quantization — the maintainer's call.
+- **What runs first**: wiring work for fused activation quantization, prefill tile/routing, or the long-context assessment — the maintainer's call.
 
 ---
 
 ## Known boundaries (current version)
 
 - Deep-context precision edge: beyond 32k tokens, f16-KV attention slowly drifts from the f32 reference (about 3e-3 at 131k); the same on upstream.
-- The fp8 family still runs K tile 256.
+- fp8 family K=512 has been verified: numerically correct (rocmfpx 61/61) but slower; on RDNA3.5 the iu8 matrix-core throughput is half of iu4 (25.3 vs 51.7 TFLOPS), so K=256 stays. See `docs/development/kernel-optimization.en.md` section 5.
