@@ -4,8 +4,6 @@
 
 strix.cpp is an independently maintained llama.cpp branch. It does three things well: it continuously syncs upstream; it natively supports ROCmFPX quantization (formats upstream cannot load); and it folds in multimodal vision. But its reason to exist is kernel-level specialization for this one chip — Strix Halo (gfx1151), up to 128 GiB of unified memory: the same model and the same quant, with an attention kernel that runs over twenty percent faster.
 
-Formerly `llama.cpp-rocm` (renamed 2026-10-17; old links redirect automatically).
-
 [中文](README.md)
 
 ---

@@ -62,7 +62,7 @@ Decode is currently level with the previous version. gufo's 1.7× comes from KV 
 
 ## Decide with us
 
-- **Production switch**: new lib `80d9cd` (K tile + MoE fix + SSM conv) → `~/llama-rocm/bin`, via full mirror + smoke test + rollback plan.
+- **Production switch**: new lib `80d9cd` (K tile + MoE fix + SSM conv) → `~/strix.cpp/bin`, via full mirror + smoke test + rollback plan.
 - **Release**: whether to tag this change `v1.0.1` and write a Release.
 - **What runs first**: the fp8 family for performance, or wiring work for fused quantization — the maintainer's call.
 
