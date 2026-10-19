@@ -4,6 +4,10 @@
 
 ## [未发布]
 
+### 变更
+
+- 服务端可执行文件由 `llama-server` 更名为 `strix-server`。构建和部署同时保留 `llama-server` 兼容软链，旧脚本与旧命令仍可用；文档与模型卡统一使用 `strix-server`。
+
 ### 修复
 
 - **投机批的连续性校验**：`process()` 现在会拒绝同一条序列的 token 在批内交错的输入（不同序列的 token 数可以不等，这是合法的）；交错的批以前会静默错位，现在直接报错。附带单元测试 `test-spec-batch-contiguity`。

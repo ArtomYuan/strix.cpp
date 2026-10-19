@@ -1118,7 +1118,8 @@ static void common_params_print_completion(common_params_context & ctx_arg) {
         "llama-speculative-simple",
         "llama-tokenize",
         "llama-tts",
-        "llama-vdot"
+        "llama-vdot",
+        "strix-server"
     };
 
     for (const auto& exe : executables) {

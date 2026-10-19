@@ -1,6 +1,6 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-# server-context containing the core server logic, used by llama-server and CLI
+# server-context containing the core server logic, used by strix-server and CLI
 
 set(TARGET server-context)
 
@@ -35,9 +35,9 @@ target_include_directories(${TARGET} PRIVATE ../mtmd)
 target_include_directories(${TARGET} PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(${TARGET} PUBLIC llama-common mtmd ${CMAKE_THREAD_LIBS_INIT})
 
-# llama-server-impl: server logic, reusable by app
+# strix-server-impl: server logic, reusable by app
 
-set(TARGET llama-server-impl)
+set(TARGET strix-server-impl)
 
 add_library(${TARGET}
     server.cpp
@@ -58,12 +58,21 @@ if(LLAMA_TOOLS_INSTALL)
     install(TARGETS ${TARGET} LIBRARY)
 endif()
 
-# llama-server executable
+# strix-server executable
 
-set(TARGET llama-server)
+set(TARGET strix-server)
 
 add_executable(${TARGET} main.cpp)
 install(TARGETS ${TARGET} RUNTIME)
 
-target_link_libraries(${TARGET} PRIVATE llama-server-impl)
+target_link_libraries(${TARGET} PRIVATE strix-server-impl)
 target_compile_features(${TARGET} PRIVATE cxx_std_17)
+
+# compatibility alias: upstream scripts and old commands still call llama-server
+if (UNIX)
+    add_custom_command(TARGET ${TARGET} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -f $<TARGET_FILE_DIR:${TARGET}>/llama-server
+        COMMAND ${CMAKE_COMMAND} -E create_symlink $<TARGET_FILE_NAME:${TARGET}> $<TARGET_FILE_DIR:${TARGET}>/llama-server
+        COMMENT "Creating llama-server compatibility symlink"
+        VERBATIM)
+endif()

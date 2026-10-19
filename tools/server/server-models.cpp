@@ -744,7 +744,7 @@ void server_models::load_models() {
     }
 
     // overlay router's own CLI args on top of every model preset so that
-    // e.g. `llama-server --temp 0` is honoured by all child processes
+    // e.g. `strix-server --temp 0` is honoured by all child processes
     for (auto & [name, preset] : final_presets) {
         preset.merge(base_preset);
     }
@@ -2003,7 +2003,7 @@ void server_models_routes::init_routes() {
                 {"max_instances",        params.models_max},
                 {"models_autoload",      params.models_autoload},
                 // this is a dummy response to make sure the UI doesn't break
-                {"model_alias", "llama-server"},
+                {"model_alias", "strix-server"},
                 {"model_path",  "none"},
                 {"default_generation_settings", {
                     {"params", json{}},

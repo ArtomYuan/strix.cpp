@@ -61,7 +61,7 @@ private:
     std::condition_variable                             gc_wake_cv;
 };
 
-// process wide manager, lifecycle controlled by llama-server main() via start_gc/stop_gc
+// process wide manager, lifecycle controlled by strix-server main() via start_gc/stop_gc
 static stream_session_manager g_stream_sessions;
 
 void server_stream_session_manager_start() {

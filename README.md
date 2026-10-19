@@ -42,15 +42,15 @@ export ROCM_PATH=/opt/rocm PATH=/opt/rocm/bin:$PATH
 cmake -B build -DGGML_HIP=ON -DCMAKE_BUILD_TYPE=Release -DAMDGPU_TARGETS=gfx1151 \
   -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
   -DCMAKE_PREFIX_PATH=/opt/rocm/core-10.0 -DLLAMA_CURL=OFF -DGGML_OPENMP=OFF
-cmake --build build -j $(nproc) --target llama-server llama-quantize llama-bench
+cmake --build build -j $(nproc) --target strix-server llama-quantize llama-bench
 ```
 
-产物在 `build/bin/`。
+产物在 `build/bin/`。可执行文件是 `strix-server`；`build/bin/llama-server` 是指向它的兼容软链，旧脚本可以直接用。
 
 ### 运行
 
 ```bash
-build/bin/llama-server -m <模型.gguf> --port 8080
+build/bin/strix-server -m <模型.gguf> --port 8080
 ```
 
 OpenAI 兼容 API（默认 `/v1`）。视觉/定位模型加 `--special`；纯文本模型不需要。
@@ -58,7 +58,7 @@ OpenAI 兼容 API（默认 `/v1`）。视觉/定位模型加 `--special`；纯�
 模型自带 `nextn` 层时，可以开投机解码（目前只验证了 Qwen3.8-27B）：
 
 ```bash
-build/bin/llama-server -m <模型.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
+build/bin/strix-server -m <模型.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
 ```
 
 同提示、同 seed 下，输出与不开启时**逐字一致**，解码 14.0 → 37.9 t/s。草稿深度 8 及以上会让接受率塌到 0.6%，只剩开销，不要用。多序列并发时正常合批；预填与解码不会混进同一批（两者每条序列的 token 数不同）。详见[内核优化记录第 6 节](docs/development/kernel-optimization.md)与[第 8 节](docs/development/kernel-optimization.md)。
@@ -71,7 +71,7 @@ Type=simple
 Environment=HSA_OVERRIDE_GFX_VERSION=11.5.1
 Environment=HIP_VISIBLE_DEVICES=0
 Environment=LD_LIBRARY_PATH=/path/to/engine/bin
-ExecStart=/path/to/engine/bin/llama-server --special -m /path/to/model.gguf --port <port>
+ExecStart=/path/to/engine/bin/strix-server --special -m /path/to/model.gguf --port <port>
 ```
 
 ## 文档

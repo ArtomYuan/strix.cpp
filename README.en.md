@@ -42,15 +42,15 @@ export ROCM_PATH=/opt/rocm PATH=/opt/rocm/bin:$PATH
 cmake -B build -DGGML_HIP=ON -DCMAKE_BUILD_TYPE=Release -DAMDGPU_TARGETS=gfx1151 \
   -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
   -DCMAKE_PREFIX_PATH=/opt/rocm/core-10.0 -DLLAMA_CURL=OFF -DGGML_OPENMP=OFF
-cmake --build build -j $(nproc) --target llama-server llama-quantize llama-bench
+cmake --build build -j $(nproc) --target strix-server llama-quantize llama-bench
 ```
 
-Artifacts land in `build/bin/`.
+Artifacts land in `build/bin/`. The executable is `strix-server`; `build/bin/llama-server` is a compatibility symlink to it, so old scripts keep working.
 
 ### Run
 
 ```bash
-build/bin/llama-server -m <model.gguf> --port 8080
+build/bin/strix-server -m <model.gguf> --port 8080
 ```
 
 OpenAI-compatible API (default `/v1`). Vision/grounding models need `--special`; plain text models do not.
@@ -58,7 +58,7 @@ OpenAI-compatible API (default `/v1`). Vision/grounding models need `--special`;
 When the model ships a `nextn` layer, speculative decoding is available (only Qwen3.8-27B is verified so far):
 
 ```bash
-build/bin/llama-server -m <model.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
+build/bin/strix-server -m <model.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
 ```
 
 With the same prompt and seed the output is **byte-identical** to a non-speculative run, while generation goes from 14.0 to 37.9 t/s. Draft depth 8 and beyond collapses the acceptance rate to 0.6% and only adds overhead; do not use it. With multiple concurrent sequences decoding batches normally; prompt and decode batches are never mixed, since their per-sequence token counts differ. See [kernel optimization, section 6](docs/development/kernel-optimization.en.md) and [section 8](docs/development/kernel-optimization.en.md).
@@ -71,7 +71,7 @@ Type=simple
 Environment=HSA_OVERRIDE_GFX_VERSION=11.5.1
 Environment=HIP_VISIBLE_DEVICES=0
 Environment=LD_LIBRARY_PATH=/path/to/engine/bin
-ExecStart=/path/to/engine/bin/llama-server --special -m /path/to/model.gguf --port <port>
+ExecStart=/path/to/engine/bin/strix-server --special -m /path/to/model.gguf --port <port>
 ```
 
 ## Documentation

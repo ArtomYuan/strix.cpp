@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The server executable is now `strix-server` (was `llama-server`). The build and deploy keep a `llama-server` compatibility symlink, so old scripts and commands keep working; docs and model cards use `strix-server`.
+
 ### Fixed
 
 - **Contiguity check for speculative batches**: `process()` now rejects a batch where one sequence's tokens are interleaved with another's. Unequal run lengths are valid (slots can carry different draft lengths); interleaved batches used to be silently mis-indexed and are now rejected with an error. Covered by `test-spec-batch-contiguity`.

@@ -820,7 +820,7 @@ void server_http_context::register_gcp_compat() const {
     }
 
     if (handlers.count(gcp.path_predict)) {
-        SRV_ERR("AIP_PREDICT_ROUTE=%s conflicts with an existing llama-server route\n", gcp.path_predict.c_str());
+        SRV_ERR("AIP_PREDICT_ROUTE=%s conflicts with an existing strix-server route\n", gcp.path_predict.c_str());
         exit(1);
     }
 

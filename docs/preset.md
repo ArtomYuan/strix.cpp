@@ -86,10 +86,10 @@ temp        = 1.0
 chat-template-kwargs = {"reasoning_effort": "high"}
 ```
 
-You can then use it via `llama-cli` or `llama-server`, example:
+You can then use it via `llama-cli` or `strix-server`, example:
 
 ```sh
-llama-server -hf user/repo:gpt-oss-120b-hf
+strix-server -hf user/repo:gpt-oss-120b-hf
 ```
 
 Please make sure to provide the correct `hf-repo` for each child preset. Otherwise, you may get error: `The specified tag is not a valid quantization scheme.`
@@ -106,5 +106,5 @@ The config file is applied first, then its options are overridden by ENV variabl
 
 Note:
 - Only the `[*]` and default sections are used; options written before any section header belong to "default. Named sections are ignored
-- Tool-specific options can be specified, but will be ignored (with a warning) if the example doesn't support it<br/>Example: if you specify `port = 1234`, only `llama-server` will use it, other examples will ignore it
+- Tool-specific options can be specified, but will be ignored (with a warning) if the example doesn't support it<br/>Example: if you specify `port = 1234`, only `strix-server` will use it, other examples will ignore it
 - `model` or `hf-repo` are not recommended to be configured system-level, because it may introduce conflicts<br/>Example: a `hf-repo` in the config file still takes effect when you pass `-m` on the command line, so you may load a different model than expected

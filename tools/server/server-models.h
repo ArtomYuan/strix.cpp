@@ -204,7 +204,7 @@ private:
     common_params base_params;
     std::string bin_path;
     std::vector<std::string> base_env;
-    common_preset base_preset; // base preset from llama-server CLI args
+    common_preset base_preset; // base preset from strix-server CLI args
 
     // queue of requests waiting for a models_max slot
     std::unique_ptr<server_lru_sched> sched;
