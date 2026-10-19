@@ -138,7 +138,9 @@
 
 - **MUL_MAT_ID (MoE routing) with duplicate expert ids**: when a token's top-k list contains the same expert more than once, `mul_mat_id` dropped or corrupted columns; on the quantized path this surfaced as an illegal memory access in `quantize_mmq_q8_1` (GPU hang). Ports upstream `ggml-org/llama.cpp#26294` (building on `#30477`): the ids compactor keeps one shared-memory entry per token and expands duplicate slots at write-out via prefix sums; MMQ/MMF address columns through the packed-tile mapping; the host fallback no longer breaks at the first match. Two fork adaptations: the new `ntx <= 65535` assert is now CUDA-only (ROCm accepts larger grids), and the fix is rebased onto the ROCmFPX MMQ/MMF specializations. Verification: `MUL_MAT_ID` **953/953** (previously a GPU hang), full suite **18781/18785** (the 4 failures are the documented f16-KV deep-context precision edges, same as stock), `MUL_MAT` rocmfp4 24/24 and rocmfpx 61/61; dense end-to-end pp2048 709.9 t/s (−1.5%, within the noise band), pp16384 610.1 (−0.6%), tg256 unchanged.
 
-## [v2026.9.24] (2026-09-24)
+> Note: the old 2026-09 git tags use the `v2026.9.x` date format; the sections below use the project version `v0.2.x`, and GitHub Release names are `vX (YYYY-MM-DD)`.
+
+## [v0.2.6] (2026-09-24)
 
 ### Engine
 
@@ -160,13 +162,13 @@
 - `tests/test-backend-ops.cpp`: added an MMQ `offset_dst` int32-overflow regression case (`Q8_0_ROCMFPX`, `m=151669, n=16384, k=32`, covering the `m*n > 2^31` large-vocab × large-batch shape; n=16384 overflows 17 column tiles for an NMSE of 0.165, far above the 5e-4 threshold, so the numerical check catches it; the minimal n=14209 overflows only one column — below the threshold — and is therefore not used). Pre-fix the case always fails (`ERR = 0.1649 > 5e-4`); post-fix it passes. `rocmfpx` targeted self-test 60/60 → **61/61**, full `MUL_MAT` 1381 → **1382/1382**, `MUL_MAT_ID` 935/935.
 - Long-input memory regression: the sandbox ladder (8K-120K tokens) holds a constant **15.6 GB** GTT delta after the fix (length-independent) with zero breaker trips; a production 110K-token packet succeeds (90.9 s / 200); the observation window after the switch shows zero 500/504 and no oom lines in `journalctl -k`.
 
-## [v2026.9.22] (2026-09-22)
+## [v0.2.5] (2026-09-21)
 
 ### Engine
 
 - **Branch-free hot-path decode (ROCmFPX/ROCmFP4)**: removed the data-dependent branches from the ue4m3 scale decode (executed once per weight block per thread; ternaries now lower to SEL/CSEL), bit-exact for all 256 inputs. Measured on gfx1151 (Qwen3-Embedding/Reranker-8B, pp2048): Q8_0_ROCMFPX **1107→1233 t/s (+11.4%, now above std Q8_0's 1227)**, Q6_0_ROCMFPX 920→1013 (+10.1%), Q4_0_ROCMFP4_FAST 1246→1294 (+3.9%). Root-caused with rocprofv3 counters (the old fp8 MMQ kernel showed +39% SALU, +40% branches, +86% WAIT_ANY, +18% wave cycles vs std; memory counters identical throughout); after the fix every counter matches std, and the fp4 MMQ kernel's wave cycles drop by 8.6%. Verified: test-backend-ops MUL_MAT rocmfpx 60/60, rocmfp4 24/24.
 
-## [v2026.9.21] (2026-09-21)
+## [v0.2.4] (2026-09-21)
 
 ### Engine
 
@@ -180,19 +182,19 @@
 
 - `tests/test-backend-ops.cpp`: `all_types[]` now includes the four fp8 types, plus large-shape fp8 cases (m=4096/251, n=128/512, k=1024, covering the large J tile and both fallback grids). Result: **60/60 pass** (MMVQ, MMQ and hipBLAS paths). End-to-end: Qwen3-Embedding-8B-Q8_ROCMFPX GPU smoke (including the MMQ batch path) within e-4 of the CPU baseline; fidelity matches the CPU reference (top-5 neighbour overlap 96.4%).
 
-## [v2026.9.22] (2026-09-15)
+## [v0.2.3] (2026-09-20)
 
 ### Docs
 
 - Bilingual docs: README.en.md is now kept in sync with the Chinese README; added CHANGELOG.en.md (this file). Release notes are bilingual as of this version.
 
-## [v2026.9.16] (2026-09-15)
+## [v0.2.2] (2026-09-15)
 
 ### Fixed
 
 - Fixed the dispatch mismatch for dual-scale `Q4_0_ROCMFP4` on the MMQ path (`mmq.cuh` now uses the per-16-value vec-dot variant shared with Q3_K): numerical error ~3e-2 -> ~3e-8, 2296/2296 cases pass. Previously dual-scale models silently computed wrong results via MMQ; production `_FAST` (single-scale) is unaffected.
 
-## [v2026.9.15] (2026-09-15)
+## [v0.2.1] (2026-09-15)
 
 ### Engine
 
@@ -204,7 +206,7 @@
 
 - Corrected the "MMQ not ready / disabled" and "off 69.17 vs on 67.26 is better" wording in README/CHANGELOG (the old 69.17/67.26 is a tg32/batch-1 decode metric that goes through MMVQ, not MMQ); verified MMQ has always been on and prefill is ~2x (pp512 +105%, pp2048 +109%, measured 2026-09-15).
 
-## [v2026.9.22] (2026-09-14)
+## [v0.2.0] (2026-09-14)
 
 ### Engine
 
@@ -223,7 +225,7 @@
 - The most complex block-merge surface = `ggml/src/ggml-cuda/fattn.cu`: upstream #28079 changed FA vector kernel dispatch from an inline cascade to the `ggml_cuda_get_fattn_vec_case()` lookup function; this repo registered 5 ROCmFPX diagonal combinations into that function and extended `ggml_cuda_fattn_kv_type_supported` to ROCmFPX/TurboQuant (otherwise the `is_rocmfp_family` route is unreachable); two CMakeLists append FPX/turbo instances and compile definitions after the helper call. This is the only high-semantic-risk surface in this sync; compile correctness is backstopped by the build stage.
 - README unchanged in this sync: upstream README had only a 1-line change in this window (maintainer navigation link list), this repo's README is a Chinese rewrite, conflict resolution kept local; README review conclusions in S11a-readme-notes.md.
 
-## [v2026.9.22] (2026-09-03)
+## [v0.2.0-dev] (2026-09-03)
 
 ### Engine
 
