@@ -387,27 +387,25 @@ Conclusion: with speculation the verification batch computes several tokens at o
 
 **Recommendation.** Depth 6 for short contexts, depth 3 for long ones; add q4_0 KV when another notch is needed. Do not treat depth 8 as "more aggressive, therefore better" - measured acceptance collapses to 0.6% and only overhead remains.
 
-## 8. MTP with multiple sequences: split the verification batch per slot (v1.0.3)
+## 8. MTP with multiple sequences: never mix prompt and decode batches (v1.0.4)
 
-**Problem.** Speculative decoding was fine with one sequence (54%-59% acceptance), but two concurrent sequences fell to 2%-6%, and four or more were close to zero. From `--spec-draft-n-max 4` the output also degenerated into ` - - - - `.
+**Problem.** Speculative decoding was fine with one sequence (54%-59% acceptance), but two concurrent sequences fell to 2%-6%, and four or more were close to zero. From `--spec-draft-n-max 4` the output also degenerated into ` - - - - `. v1.0.3 serialised speculative slots as a workaround: correct output, but multi-user throughput suffered.
 
-**Narrowing it down.** The draft side was cleared first: for the same sequence, the `pending_h` checksums and the first drafted token were identical in single- and dual-stream runs; the snapshot sums (`s_plane0` / `s_planeK`) also matched single-stream bit for bit, so neither the draft nor the rollback state was damaged. What was wrong was the **target logits for the second sequence**: `draft=13 / sampled=84477`, already in the first verification round, before any rollback had happened.
+**Narrowing it down.** The draft side was cleared first: for the same sequence, the `pending_h` checksums and the first drafted token were identical in single- and dual-stream runs, and the snapshot sums matched single-stream bit for bit. The misalignment was in the **target nextn h-row bookkeeping**: the server batched a **prompt slot** (5 tokens) with a **generating slot** (1 token) into one `common_batch`, so the sequences had different token counts. The target split that into two ubatches, while MTP `process()` indexes h rows by **whole-batch position** - the second sequence read the first sequence's h rows, its draft became the other sequence's continuation, and verification and output broke together.
 
-**Root cause.** The target put verification tokens from several sequences into one batch. With `n_rs_seq > 0`, the per-sequence logits rows and rollback-state mapping only hold for a single-sequence batch; with several sequences the second one reads another sequence's rows. It is neither the snapshot nor the draft context: decoding the two sequences in two calls makes every verification row `sampled == draft` again.
-
-**Fix.** `server_slot::can_batch_with()` returns false when `llama_n_rs_seq(ctx_tgt) > 0` - with rollback snapshots enabled the target decodes one sequence at a time. Non-speculative decoding (`n_rs_seq == 0`) still batches as before. Commit `3ee1a610e`.
+**Fix.** `server_slot::can_batch_with()` batches only slots in the **same processing phase** (`state`). Prompt and decode batches no longer mix; two prompts or two decodes still batch normally. The v1.0.3 per-slot serialisation is removed. Commit `026becb9d`.
 
 **Verification.**
 
 | Scenario | Acceptance | Speed | Output |
 |:--|--:|--:|:--|
-| single stream, depth 6 (128 tokens) | 58.9% | 37.6 t/s | yes |
-| dual, depth 4 | 87.5% / 63.8% | 42.2 / 32.4 t/s | yes |
-| dual, depth 6 | 88.3% / 57.1% | 49.5 / 35.1 t/s | yes |
-| 4-way, depth 2 | 79%-100% | ~119 t/s total | yes |
+| single stream, depth 6 (128 tokens) | 58.9% | 37.9 t/s | yes |
+| dual, depth 4 | 87.5% / 63.8% | 42.5 / 31.9 t/s | yes |
+| dual, depth 6 | 88.3% / 57.1% | 50.4 / 34.8 t/s | yes |
+| 4-way, depth 2 | 75.5%-100% | ~109 t/s total | yes |
 | 5-way, depth 1 | 80%-100% | ~115 t/s total | yes |
 
-**Boundary.** This bypasses cross-sequence batching; it does not repair multi-sequence batch processing itself. Restoring batching for more speed would mean fixing the logits/state mapping. The cost is that speculative slots are serialised: in the 5-way run the fifth request waited about 12 s for its prefill, while generation speed was unaffected. The old boundary (the verification batch crashed once total rows exceeded 8) disappears with batching.
+**Boundary.** This is a root-cause fix, not a bypass: multi-sequence speculative decoding batches again, and the old boundary (crash once the verification batch exceeded 8 rows) is gone. Prompt and decode batches are never mixed - their per-sequence token counts differ, so they never belonged in one batch; two prompt requests still batch.
 
 ## Appendix: entry structure (follow for future kernel-level changes)
 

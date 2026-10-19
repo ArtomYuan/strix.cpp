@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+## [v1.0.4] (2026-10-19)
+
+### Fixed
+
+- **MTP multi-sequence root-cause fix**: v1.0.3 serialised speculative decoding per slot to bypass the problem, at the cost of multi-user throughput. The actual cause was the server batching a **prompt slot** (many tokens) with a **generating slot** (one token): the sequences had different token counts, while the MTP h-row bookkeeping indexes the target nextn outputs by whole-batch position. The second sequence therefore read the first sequence's h rows, corrupting draft, verification and output together. `server_slot::can_batch_with` now batches only slots in the **same processing phase**; the v1.0.3 serialisation is removed.
+
+  | Scenario | Acceptance | Speed | Output |
+  |:--|--:|--:|:--|
+  | dual, depth 4 | 87.5% / 63.8% | 42.5 / 31.9 t/s | yes |
+  | dual, depth 6 | 88.3% / 57.1% | 50.4 / 34.8 t/s | yes |
+  | 4-way, depth 2 | 75.5%-100% | ~109 t/s total | yes |
+  | 5-way, depth 1 | 80%-100% | ~115 t/s total | yes |
+
+  Single stream at depth 6 (128 tokens) stays at 37.9 t/s, matching v1.0.2. Prompt and decode batches no longer mix (their per-sequence token counts differ); two prompts or two decodes still batch normally. See section 8 of `docs/development/kernel-optimization.en.md`.
+
 ## [v1.0.3] (2026-10-19)
 
 ### Added
