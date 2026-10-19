@@ -138,7 +138,7 @@
 
 - **MUL_MAT_ID (MoE routing) with duplicate expert ids**: when a token's top-k list contains the same expert more than once, `mul_mat_id` dropped or corrupted columns; on the quantized path this surfaced as an illegal memory access in `quantize_mmq_q8_1` (GPU hang). Ports upstream `ggml-org/llama.cpp#26294` (building on `#30477`): the ids compactor keeps one shared-memory entry per token and expands duplicate slots at write-out via prefix sums; MMQ/MMF address columns through the packed-tile mapping; the host fallback no longer breaks at the first match. Two fork adaptations: the new `ntx <= 65535` assert is now CUDA-only (ROCm accepts larger grids), and the fix is rebased onto the ROCmFPX MMQ/MMF specializations. Verification: `MUL_MAT_ID` **953/953** (previously a GPU hang), full suite **18781/18785** (the 4 failures are the documented f16-KV deep-context precision edges, same as stock), `MUL_MAT` rocmfp4 24/24 and rocmfpx 61/61; dense end-to-end pp2048 709.9 t/s (−1.5%, within the noise band), pp16384 610.1 (−0.6%), tg256 unchanged.
 
-> Note: the old 2026-09 git tags use the `v2026.9.x` date format; the sections below use the project version `v0.2.x`, and GitHub Release names are `vX (YYYY-MM-DD)`.
+> Note: the 2026-09 tags are now `v0.2.x`; the upstream llama.cpp `v0.2.0` tag is preserved as `upstream/v0.2.0`. GitHub Release names are `vX (YYYY-MM-DD)`.
 
 ## [v0.2.6] (2026-09-24)
 

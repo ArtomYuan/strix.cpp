@@ -138,7 +138,7 @@
 
 - **MUL_MAT_ID（MoE 路由）的重复专家缺陷**：同一专家被 top-k 选中多次时，`mul_mat_id` 会丢列或写错列，量化路径上表现为 `quantize_mmq_q8_1` 非法访存（GPU 故障挂起）。移植上游 `ggml-org/llama.cpp#26294`（含 `#30477`）：ids 压缩保持每 token 一条共享内存、重复槽位在写出时按前缀和展开；MMQ/MMF 改用打包瓦片映射寻址；主机回退路径不再在首个匹配处 break。本 fork 另有两处适配：`ntx <= 65535` 断言改为仅 CUDA 生效（ROCm 允许更大的网格），并重新适配到 ROCmFPX 的 MMQ/MMF 特化。验证：`MUL_MAT_ID` **953/953**（修复前为 GPU 故障挂起）、全量套件 **18781/18785**（4 个为既有 f16-KV 深水精度边缘，stock 同款）、`MUL_MAT` rocmfp4 24/24、rocmfpx 61/61；dense 端到端 pp2048 709.9 t/s（−1.5%，噪声带内）、pp16384 610.1（−0.6%）、tg256 不变。
 
-> 说明：2026-09 的旧 git tag 使用 `v2026.9.x` 日期格式；下表按项目版本号 `v0.2.x` 记录，GitHub Release 名称统一为 `vX (YYYY-MM-DD)`。
+> 说明：2026-09 的历史 tag 已统一为 `v0.2.x`；上游 llama.cpp 的 `v0.2.0` tag 备份为 `upstream/v0.2.0`。GitHub Release 名称统一为 `vX (YYYY-MM-DD)`。
 
 ## [v0.2.6] (2026-09-24)
 
