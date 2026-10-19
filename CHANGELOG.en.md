@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [v1.1.0] (2026-10-19)
+
 ### Changed
 
 - The server executable is now `strix-server` (was `llama-server`). The build and deploy keep a `llama-server` compatibility symlink, so old scripts and commands keep working; docs and model cards use `strix-server`.
