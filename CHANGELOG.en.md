@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Contiguity check for speculative batches**: `process()` now rejects a batch where one sequence's tokens are interleaved with another's. Unequal run lengths are valid (slots can carry different draft lengths); interleaved batches used to be silently mis-indexed and are now rejected with an error. Covered by `test-spec-batch-contiguity`.
+
 ## [v1.0.4] (2026-10-19)
 
 ### Fixed

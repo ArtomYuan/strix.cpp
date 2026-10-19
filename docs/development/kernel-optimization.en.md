@@ -405,7 +405,7 @@ Conclusion: with speculation the verification batch computes several tokens at o
 | 4-way, depth 2 | 75.5%-100% | ~109 t/s total | yes |
 | 5-way, depth 1 | 80%-100% | ~115 t/s total | yes |
 
-**Boundary.** This is a root-cause fix, not a bypass: multi-sequence speculative decoding batches again, and the old boundary (crash once the verification batch exceeded 8 rows) is gone. Prompt and decode batches are never mixed - their per-sequence token counts differ, so they never belonged in one batch; two prompt requests still batch.
+**Boundary.** This is a root-cause fix, not a bypass: multi-sequence speculative decoding batches again, and the old boundary (crash once the verification batch exceeded 8 rows) is gone. Prompt and decode batches are never mixed - their per-sequence token counts differ, so they never belonged in one batch; two prompt requests still batch. `process()` now also verifies that each sequence's tokens form a contiguous run; unequal run lengths are valid (slots can carry different draft lengths), and only interleaved batches are rejected.
 
 ## Appendix: entry structure (follow for future kernel-level changes)
 
