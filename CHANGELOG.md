@@ -104,7 +104,7 @@
 
 ### 更名
 
-- **项目更名：`llama.cpp-rocm` → `strix.cpp`**（GitHub 仓库 `ArtomYuan/strix.cpp`；旧链接由 GitHub 301 自动重定向）。
+- **项目更名：`llama.cpp-rocm` → `strix.cpp`**（GitHub 仓库：`ArtomYuan/strix.cpp`）。
 
 ### 性能
 

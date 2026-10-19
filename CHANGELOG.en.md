@@ -104,7 +104,7 @@
 
 ### Rename
 
-- **Project renamed: `llama.cpp-rocm` → `strix.cpp`** (GitHub: `ArtomYuan/strix.cpp`; old links redirect via GitHub 301).
+- **Project renamed: `llama.cpp-rocm` → `strix.cpp`** (GitHub: `ArtomYuan/strix.cpp`).
 
 ### Performance
 
