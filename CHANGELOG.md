@@ -4,6 +4,10 @@
 
 ## [未发布]
 
+### 新增
+
+- **一键安装脚本**：新增 `install.sh`，在空目录执行即可克隆、构建并安装到当前目录的 `strix.cpp/`（源码在 `strix.cpp/src/`，二进制在 `strix.cpp/bin/`，运行库在 `strix.cpp/lib/`）；`scripts/install.sh` 负责本地构建安装，默认安装到执行目录下的 `strix.cpp/`，可用 `INSTALL_DIR` 覆盖。安装后的二进制带 `$ORIGIN/../lib` RUNPATH。
+
 ## [v1.1.0] (2026-10-19)
 
 ### 变更

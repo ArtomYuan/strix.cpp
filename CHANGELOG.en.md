@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **One-click installer**: `install.sh` clones, builds, and installs into `strix.cpp/` under the current directory (source in `strix.cpp/src/`, binary in `strix.cpp/bin/`, runtime libraries in `strix.cpp/lib/`); `scripts/install.sh` performs the local build and install and defaults to `strix.cpp/` under the caller's directory, with `INSTALL_DIR` as an override. Installed binaries carry a `$ORIGIN/../lib` RUNPATH.
+
 ## [v1.1.0] (2026-10-19)
 
 ### Changed
