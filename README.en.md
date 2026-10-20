@@ -47,6 +47,20 @@ cmake --build build -j $(nproc) --target strix-server llama-quantize llama-bench
 
 Artifacts land in `build/bin/`. The executable is `strix-server`; `build/bin/llama-server` is a compatibility symlink to it, so old scripts keep working.
 
+### Install into the current directory
+
+```bash
+./scripts/install.sh
+```
+
+The install directory is decided by where you run the command: by default it is `strix.cpp/` under the current directory; even if the current directory is already named `strix.cpp`, you get `strix.cpp/strix.cpp/`. You can also name it explicitly:
+
+```bash
+INSTALL_DIR=/path/to/strix.cpp ./scripts/install.sh
+```
+
+After installation the binary is at `<install-dir>/bin/strix-server`, with the runtime libraries in `<install-dir>/lib/`. The binary carries a `$ORIGIN/../lib` RUNPATH, so `LD_LIBRARY_PATH` is normally unnecessary; add it only when ROCm is not on the system default path.
+
 ### Run
 
 ```bash
@@ -70,7 +84,7 @@ With the same prompt and seed the output is **byte-identical** to a non-speculat
 Type=simple
 Environment=HSA_OVERRIDE_GFX_VERSION=11.5.1
 Environment=HIP_VISIBLE_DEVICES=0
-Environment=LD_LIBRARY_PATH=/path/to/engine/bin
+Environment=LD_LIBRARY_PATH=/path/to/engine/lib:/opt/rocm/lib
 ExecStart=/path/to/engine/bin/strix-server --special -m /path/to/model.gguf --port <port>
 ```
 

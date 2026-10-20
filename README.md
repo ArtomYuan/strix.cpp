@@ -47,6 +47,20 @@ cmake --build build -j $(nproc) --target strix-server llama-quantize llama-bench
 
 产物在 `build/bin/`。可执行文件是 `strix-server`；`build/bin/llama-server` 是指向它的兼容软链，旧脚本可以直接用。
 
+### 安装到当前目录
+
+```bash
+./scripts/install.sh
+```
+
+安装目录由执行命令时所在的目录决定：默认安装到当前目录下的 `strix.cpp/`；即使当前目录本身已经叫 `strix.cpp`，也会得到 `strix.cpp/strix.cpp/`。也可以显式指定：
+
+```bash
+INSTALL_DIR=/path/to/strix.cpp ./scripts/install.sh
+```
+
+安装后二进制在 `<安装目录>/bin/strix-server`，运行库在 `<安装目录>/lib/`。二进制带 `$ORIGIN/../lib` 的 RUNPATH，通常不需要再设 `LD_LIBRARY_PATH`；ROCm 不在系统默认路径时再补。
+
 ### 运行
 
 ```bash
@@ -70,7 +84,7 @@ build/bin/strix-server -m <模型.gguf> --port 8080 --spec-type draft-mtp --spec
 Type=simple
 Environment=HSA_OVERRIDE_GFX_VERSION=11.5.1
 Environment=HIP_VISIBLE_DEVICES=0
-Environment=LD_LIBRARY_PATH=/path/to/engine/bin
+Environment=LD_LIBRARY_PATH=/path/to/engine/lib:/opt/rocm/lib
 ExecStart=/path/to/engine/bin/strix-server --special -m /path/to/model.gguf --port <port>
 ```
 
