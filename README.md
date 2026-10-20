@@ -47,6 +47,14 @@ cmake --build build -j $(nproc) --target strix-server llama-quantize llama-bench
 
 产物在 `build/bin/`。可执行文件是 `strix-server`；`build/bin/llama-server` 是指向它的兼容软链，旧脚本可以直接用。
 
+### 一键安装
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ArtomYuan/strix.cpp/master/install.sh | bash
+```
+
+默认在当前目录创建 `strix.cpp/`：源码在 `strix.cpp/src/`，二进制在 `strix.cpp/bin/`，运行库在 `strix.cpp/lib/`。`INSTALL_DIR=...` 可以改安装位置。
+
 ### 安装到当前目录
 
 ```bash

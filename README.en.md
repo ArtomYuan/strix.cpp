@@ -47,6 +47,14 @@ cmake --build build -j $(nproc) --target strix-server llama-quantize llama-bench
 
 Artifacts land in `build/bin/`. The executable is `strix-server`; `build/bin/llama-server` is a compatibility symlink to it, so old scripts keep working.
 
+### One-click install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ArtomYuan/strix.cpp/master/install.sh | bash
+```
+
+This creates `strix.cpp/` in the current directory: source under `strix.cpp/src/`, binary under `strix.cpp/bin/`, runtime libraries under `strix.cpp/lib/`. Set `INSTALL_DIR=...` to choose another location.
+
 ### Install into the current directory
 
 ```bash
