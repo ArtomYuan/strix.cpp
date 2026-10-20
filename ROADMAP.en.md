@@ -50,7 +50,7 @@ Decode is currently level with the previous version. gufo's 1.7× comes from KV 
 
 ## Decide with us
 
-- **Production switch**: v1.1.0 (commit `309bfef16`) → `~/strix.cpp/bin`, via full mirror + smoke test + rollback plan.
+- **Production switch**: v1.1.0 (commit `309bfef16`) → `<install-dir>/bin/strix-server`, via full mirror + smoke test + rollback plan.
 - **Release**: v1.0.1 through v1.1.0 are tagged and released; next is scope and timing for v1.2.0.
 - **What runs first**: wiring work for fused activation quantization, prefill tile/routing, or the long-context assessment — the maintainer's call.
 
