@@ -127,4 +127,4 @@ Depth 8 and beyond collapses acceptance to 0.6% — pure overhead, and output no
 
 ## License
 
-MIT. Based on [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp).
+New strix.cpp code is licensed under the **Apache License 2.0**. Upstream code from [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) remains **MIT**; see `LICENSE-MIT`. Third-party components are listed in `THIRD_PARTY_NOTICES.md`.

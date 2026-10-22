@@ -1,13 +1,14 @@
 # Third-Party Notices
 
-This repository is based on `llama.cpp` and preserves the upstream MIT license
-(`LICENSE`, Copyright (c) 2023-2026 The ggml authors) and the third-party
-license files that ship with the tree.
+This repository is based on `llama.cpp`. Upstream code remains under the MIT
+license (`LICENSE-MIT`, Copyright (c) 2023-2026 The ggml authors). New
+strix.cpp code is licensed under the Apache License 2.0 (`LICENSE`). The
+third-party license files that ship with the tree are unchanged.
 
 ## ROCmFP4 / ROCmFPx formats
 
 - Source: https://github.com/charlie12345/ROCmFPX
-- License: MIT (identical text and copyright line to this repository's `LICENSE`)
+- License: MIT (identical text and copyright line to this repository's `LICENSE-MIT`)
 - Taken over as-is: `ggml/rocmfp4/` and `ggml/rocmfpx/` (format definitions,
   CPU reference quantizers/dequantizers, HIP helper headers, reference tests),
   the CPU vec-dot kernels in `ggml/src/ggml-cpu/ggml-cpu.c`, the HIP

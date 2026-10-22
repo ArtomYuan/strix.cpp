@@ -127,4 +127,4 @@ build/bin/strix-server -m <模型.gguf> --port 8080 --spec-type draft-mtp --spec
 
 ## 许可
 
-MIT。基于 [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp)。
+strix.cpp 新增代码采用 **Apache License 2.0**；基于 [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) 的上游代码仍为 **MIT**，完整文本见 `LICENSE-MIT`。第三方组件见 `THIRD_PARTY_NOTICES.md`。
