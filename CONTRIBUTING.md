@@ -94,7 +94,7 @@ PR 提交前请自查：
 
 ## 上游同步
 
-本库跟踪官方 `ggml-org/llama.cpp`，当前同步基线见 `CHANGELOG.md` 最近一条同步记录（2026-10 为 `091b6a7fc`）。同步是独立工作：用 `sync/upstream-YYYYMMDD` 分支，不夹带功能改动。
+本库跟踪官方 `ggml-org/llama.cpp`。当前同步基线与历次批次的窗口、跳过项、验证数字见 [docs/upstream-sync.md](docs/upstream-sync.md)（2026-10 为 `091b6a7fc`）。同步是独立工作：用 `sync/upstream-YYYYMMDD` 分支，不夹带功能改动。
 
 ### 边界原则
 

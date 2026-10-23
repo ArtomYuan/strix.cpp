@@ -4,7 +4,7 @@
 
 strix.cpp 是 llama.cpp 的独立维护分支。它把三件事做扎实：持续同步官方上游；原生支持 ROCmFPX 量化（上游加载不了的格式）；合并多模态视觉与定位能力。而它真正的立身之本，是在这颗芯片——Strix Halo（gfx1151）、最多 128 GiB 统一内存——上做内核级特调：同样的模型、同样的量化，注意力内核快两成以上。
 
-[English](README.en.md) · [更新记录](CHANGELOG.md) · [路线图](ROADMAP.md) · [量化指南](docs/quantization-guide.md)
+[English](README.en.md) · [更新记录](CHANGELOG.md) · [路线图](docs/roadmap.md) · [量化指南](docs/quantization-guide.md)
 
 ---
 
@@ -117,7 +117,7 @@ build/bin/strix-server -m <模型.gguf> --port 8080 --spec-type draft-mtp --spec
 - [量化指南](docs/quantization-guide.md)：家族表、怎么选、量化命令、KV 类型
 - [内核优化记录](docs/development/kernel-optimization.md)：每项特调的证据与复现
 - [安装](docs/install.md) · [多模态](docs/multimodal.md) · [模型适配](docs/models.md) · [投机解码](docs/speculative.md)
-- [路线图](ROADMAP.md) · [更新记录](CHANGELOG.md) · [贡献指南](CONTRIBUTING.md)
+- [路线图](docs/roadmap.md) · [更新记录](CHANGELOG.md) · [贡献指南](CONTRIBUTING.md)
 
 ## 已知限制
 

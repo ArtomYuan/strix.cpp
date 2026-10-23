@@ -1,6 +1,6 @@
 # Roadmap
 
-This document describes **what we plan to do next**. For what has already shipped, see [CHANGELOG.en.md](CHANGELOG.en.md); item-by-item evidence lives in the kernel optimization record and in each release's notes.
+This document describes **what we plan to do next**. For what has already shipped, see [CHANGELOG.en.md](../CHANGELOG.en.md); item-by-item evidence lives in the kernel optimization record and in each release's notes.
 
 Current version: **v1.1.0 (2026-10-19, strix-server rename + spec-batch contiguity check)**; the GEMM/MoE/SSM changes shipped in v1.0.1
 

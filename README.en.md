@@ -4,7 +4,7 @@
 
 strix.cpp is an independently maintained branch of llama.cpp. It does three things properly: it keeps in step with upstream; it supports the ROCmFPX quantization family natively (formats upstream cannot load); and it folds in multimodal vision and grounding. What it is really built for, though, is kernel-level tuning on this one chip — Strix Halo (gfx1151), up to 128 GiB of unified memory: same model, same quantization, attention kernels more than 20% faster.
 
-[中文](README.md) · [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md) · [Quantization guide](docs/quantization-guide.en.md)
+[中文](README.md) · [Changelog](CHANGELOG.md) · [Roadmap](docs/roadmap.md) · [Quantization guide](docs/quantization-guide.en.md)
 
 ---
 
@@ -117,7 +117,7 @@ Depth 8 and beyond collapses acceptance to 0.6% — pure overhead, and output no
 - [Quantization guide](docs/quantization-guide.en.md): family table, how to choose, quantize commands, KV types
 - [Kernel optimization record](docs/development/kernel-optimization.en.md): evidence and reproduction for every tuning change
 - [Install](docs/install.md) · [Multimodal](docs/multimodal.md) · [Model support](docs/models.md) · [Speculative decoding](docs/speculative.md)
-- [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
+- [Roadmap](docs/roadmap.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 ## Known limitations
 
