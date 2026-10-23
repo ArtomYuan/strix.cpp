@@ -1,6 +1,6 @@
 # Install llama.cpp (upstream reference)
 
-> **strix.cpp does not publish pre-built packages.** Build from source with [README.md](../README.md) / [CONTRIBUTING.md](../CONTRIBUTING.md). The package-manager commands below install upstream llama.cpp, not this fork.
+> **strix.cpp does not publish pre-built packages.** Build from source with [README.md](../README.md) / [CONTRIBUTING.md](../CONTRIBUTING.md). A release pipeline template exists at [docs/ci/release.yml.example](ci/release.yml.example), but it is not enabled yet. The package-manager commands below install upstream llama.cpp, not this fork.
 
 | Install via | Windows | Mac  | Linux |
 |-------------|---------|------|-------|

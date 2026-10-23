@@ -74,6 +74,19 @@ curl -fsSL https://raw.githubusercontent.com/ArtomYuan/strix.cpp/master/install.
 
 安装后二进制在 `<安装目录>/bin/strix-server`，运行库在 `<安装目录>/lib/`。二进制带 `$ORIGIN/../lib` 的 RUNPATH，通常不需要再设 `LD_LIBRARY_PATH`；ROCm 不在系统默认路径时再补。
 
+### 一个入口
+
+`strix` 把常用命令收成子命令，参数原样透传给对应的二进制：
+
+```bash
+strix serve -m <模型.gguf> --port 8080    # 等价于 strix-server
+strix run -m <模型.gguf> -p "你好"         # 等价于 llama-cli
+strix bench -m <模型.gguf>                 # 等价于 llama-bench
+strix diagnose -m <模型.gguf>              # 检查 ROCm、GPU、二进制与模型
+```
+
+上游二进制名一个没改，直接调用仍然有效。完整说明见 [命令行](docs/cli.md)。
+
 ### 运行
 
 ```bash

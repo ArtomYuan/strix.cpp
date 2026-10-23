@@ -11,9 +11,9 @@
 ### Changed
 
 - **Repository hygiene**: removed upstream-only configuration leftovers — `.pi/gg/SYSTEM.md` (it told agents not to read `AGENTS.md`, contradicting this repository's rules), the ggml-org team map in `CODEOWNERS`, and the unreferenced `.github/actions/`, `.github/labeler.yml` and `ci/`; `Makefile` and `pyproject.toml` now point at this repository.
-- **Version visibility**: `CMakeLists.txt` gains `STRIX_VERSION` / `STRIX_UPSTREAM_BASE` (separate from `LLAMA_VERSION_*`); `--version` and `/props`'s `build_info` now report both the strix.cpp release version and the upstream sync base.
+- **Version visibility**: `--version` and `/props`'s `build_info` now report both the strix.cpp release version and the upstream sync base, and each has a single source (`version.txt` / `upstream.txt`, separate from `LLAMA_VERSION_*`).
 - **Docs**: added `docs/README.md` as the documentation index; fixed the `docs/release.md` dead link and three references to removed upstream workflows.
-- **CI**: added two minimal workflows — `build` (CPU configure + compile check) and `docs` (relative link check). The upstream workflow set stays removed.
+- **CI**: added two hosted workflows — `build` (CPU configure + compile check) and `docs` (relative link check); the gfx1151 workflows (`hip`, `parity`, `release`) live as templates under `docs/ci/`. The upstream workflow set stays removed.
 
 ## [v1.1.0] (2026-10-19)
 

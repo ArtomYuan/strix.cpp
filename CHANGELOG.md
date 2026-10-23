@@ -11,9 +11,9 @@
 ### 变更
 
 - **仓库治理**：清掉上游遗留配置——移除 `.pi/gg/SYSTEM.md`（其内容要求"不要读 AGENTS.md"，与本源规则冲突）、`CODEOWNERS` 从 ggml-org 团队映射改为本仓库维护者、删除无调用方的 `.github/actions/`、`.github/labeler.yml`、`ci/`；`Makefile` 与 `pyproject.toml` 的指引改指本仓库。
-- **版本可见性**：`CMakeLists.txt` 新增 `STRIX_VERSION` / `STRIX_UPSTREAM_BASE`（与 `LLAMA_VERSION_*` 分离），`--version` 与 `/props` 的 `build_info` 现在同时报 strix.cpp 发布版本与上游同步基线。
+- **版本可见性**：`--version` 与 `/props` 的 `build_info` 现在同时报 strix.cpp 发布版本与上游同步基线；两者各自只有一个源（`version.txt` / `upstream.txt`，与 `LLAMA_VERSION_*` 分离）。
 - **文档**：新增 `docs/README.md` 索引；修复 `docs/release.md` 的断链与三处指向已删除上游 workflow 的引用。
-- **CI**：新增两个最小 workflow——`build`（CPU 配置与编译检查）与 `docs`（相对链接检查）；上游 workflow 集仍不恢复。
+- **CI**：新增两个托管 workflow——`build`（CPU 配置与编译检查）与 `docs`（相对链接检查）；需要 gfx1151 的 `hip` / `parity` / `release` 以模板形式放在 `docs/ci/`；上游 workflow 集仍不恢复。
 
 ## [v1.1.0] (2026-10-19)
 

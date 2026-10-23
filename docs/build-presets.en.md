@@ -39,6 +39,10 @@ For example `build/hip-gfx1151/bin/strix-server`. To install elsewhere, `cmake -
 
 It does **not** verify HIP kernels: with `GGML_HIP=OFF`, `ggml-cuda` is not entered at all. Any commit that touches a kernel must run `hip-gfx1151` and `test-backend-ops` again on gfx1151.
 
+## Upstream examples assume a different path
+
+Upstream `examples/*/README.md` and `tests/fusion/README.md` write `./build/bin/...`, the layout of an upstream default build. With this project's presets the path is `build/<preset>/bin/...`. Those upstream documents are left untouched — rewriting them would conflict on every sync.
+
 ## Common errors
 
 - **`cmake --preset` reports an unknown preset**: CMake older than 3.21. Upgrade, or fall back to explicit `-D` flags.

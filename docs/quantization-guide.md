@@ -59,10 +59,10 @@ strix.cpp 原生支持 ROCmFPX 量化格式（GGML 类型 100-107）——这些
 
 ```bash
 # 基础量化
-build/bin/llama-quantize --allow-requantize <源模型.gguf> <输出.gguf> Q4_0_ROCMFP4_FAST 32
+build/hip-gfx1151/bin/llama-quantize --allow-requantize <源模型.gguf> <输出.gguf> Q4_0_ROCMFP4_FAST 32
 
 # Agent 路由变体（工具调用/编码场景）
-build/bin/llama-quantize --allow-requantize <源模型.gguf> <输出.gguf> Q8_0_ROCMFPX_AGENT 32
+build/hip-gfx1151/bin/llama-quantize --allow-requantize <源模型.gguf> <输出.gguf> Q8_0_ROCMFPX_AGENT 32
 ```
 
 ## GPU 计算路径说明

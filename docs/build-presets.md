@@ -39,6 +39,10 @@ build/<preset>/         # CMake 缓存、compile_commands.json
 
 它**不能**验证 HIP kernel：`ggml-cuda` 在 `GGML_HIP=OFF` 时根本不进构建。任何改到 kernel 的提交，必须在 gfx1151 上另跑一次 `hip-gfx1151` 与 `test-backend-ops`。
 
+## 上游示例的路径假设
+
+上游的 `examples/*/README.md`、`tests/fusion/README.md` 里写的是 `./build/bin/...`，那是上游默认构建目录的布局。用本库 preset 时对应 `build/<preset>/bin/...`。这些上游文档保持原样，不改写——否则每次同步都会冲突。
+
 ## 常见错误
 
 - **`cmake --preset` 报 unknown preset**：CMake 低于 3.21。升级，或退回手写 `-D` 参数。

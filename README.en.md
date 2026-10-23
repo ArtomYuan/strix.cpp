@@ -74,6 +74,19 @@ From a checkout you can also run `./scripts/install.sh`; the install directory f
 
 After installing, the binary is at `<install dir>/bin/strix-server` and the runtime libraries at `<install dir>/lib/`. The binary carries a `$ORIGIN/../lib` RUNPATH, so `LD_LIBRARY_PATH` is usually unnecessary — set it only when ROCm lives outside the default path.
 
+### One entry point
+
+`strix` folds the usual commands into subcommands and passes arguments through unchanged:
+
+```bash
+strix serve -m <model.gguf> --port 8080    # same as strix-server
+strix run -m <model.gguf> -p "hello"       # same as llama-cli
+strix bench -m <model.gguf>                # same as llama-bench
+strix diagnose -m <model.gguf>             # check ROCm, GPU, binaries, model
+```
+
+No upstream binary was renamed, so calling them directly still works. Full details in [Command line](docs/cli.md).
+
 ### Run
 
 ```bash

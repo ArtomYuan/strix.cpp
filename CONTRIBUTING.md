@@ -98,7 +98,7 @@ PR 提交前请自查：
 
 - **保留上游全部后端目录，不裁剪。** `ggml/src/` 下的 18 个后端子目录（`ggml-cuda`、`ggml-vulkan`、`ggml-sycl`、`ggml-opencl`、`ggml-hexagon` 等）与上游保持一致。裁剪会在每次同步时制造 `deleted by us` 冲突，成本永久化。
 - **构建只开 HIP。** `ggml_add_backend()` 用 `if (GGML_<BACKEND>)` 守卫，未启用的后端连 `add_subdirectory` 都不执行，不产生编译成本；默认值全部 OFF，构建命令只传 `-DGGML_HIP=ON`。
-- **`LLAMA_VERSION_*` 不因本库发版而改动。** 它表示上游同步点；strix.cpp 的发布版本在 `STRIX_VERSION`。
+- **`LLAMA_VERSION_*` 不因本库发版而改动。** 它表示上游同步点；strix.cpp 的发布版本写在 `version.txt`，上游基线写在 `upstream.txt`。
 
 ### 冲突分级
 

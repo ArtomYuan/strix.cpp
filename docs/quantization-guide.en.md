@@ -59,10 +59,10 @@ Quantizing advice: keep token embeddings at high precision (the `LEAN`/`COHERENT
 
 ```bash
 # Basic quantize
-build/bin/llama-quantize --allow-requantize <source.gguf> <output.gguf> Q4_0_ROCMFP4_FAST 32
+build/hip-gfx1151/bin/llama-quantize --allow-requantize <source.gguf> <output.gguf> Q4_0_ROCMFP4_FAST 32
 
 # Agent routing variant (tool-call/coding scenarios)
-build/bin/llama-quantize --allow-requantize <source.gguf> <output.gguf> Q8_0_ROCMFPX_AGENT 32
+build/hip-gfx1151/bin/llama-quantize --allow-requantize <source.gguf> <output.gguf> Q8_0_ROCMFPX_AGENT 32
 ```
 
 ## GPU compute paths
