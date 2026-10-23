@@ -31,19 +31,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Configure (CPU backend only)
-        run: >
-          cmake -B build
-          -DCMAKE_BUILD_TYPE=Release
-          -DLLAMA_CURL=OFF
-          -DGGML_NATIVE=OFF
-          -DGGML_CCACHE=OFF
+      - name: Configure (CPU preset)
+        run: cmake --preset cpu-check
 
-      - name: Build strix-server, llama-cli, llama-quantize
-        run: cmake --build build -j "$(nproc)" --target strix-server llama-cli llama-quantize
+      - name: Build (same preset as local)
+        run: cmake --build --preset cpu-check
 
       - name: Check that the build reports the strix.cpp version
         run: |
-          build/bin/llama-cli --version 2>&1 | tee version.txt
-          grep -q "strix.cpp:" version.txt
-          grep -q "upstream base" version.txt
+          build/cpu-check/bin/llama-cli --version 2>&1 | tee /tmp/version.out
+          grep -q "strix.cpp:" /tmp/version.out
+          grep -q "upstream base" /tmp/version.out

@@ -24,13 +24,11 @@
 
 ```bash
 export ROCM_PATH=/opt/rocm PATH=/opt/rocm/bin:$PATH
-cmake -B build -DGGML_HIP=ON -DCMAKE_BUILD_TYPE=Release -DAMDGPU_TARGETS=gfx1151 \
-  -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
-  -DCMAKE_PREFIX_PATH=/opt/rocm/core-10.0 -DLLAMA_CURL=OFF -DGGML_OPENMP=OFF
-cmake --build build -j $(nproc) --target strix-server llama-quantize llama-bench
+cmake --preset hip-gfx1151
+cmake --build --preset hip-gfx1151
 ```
 
-产物在 `build/bin/`（strix-server / llama-quantize / llama-bench + 共享库）。
+产物在 `build/hip-gfx1151/bin/`（strix-server / llama-quantize / llama-bench + 共享库）。
 
 ## 提交规范
 
@@ -80,13 +78,13 @@ PR 提交前请自查：
 2. **量化验证**（涉及量化代码时）：
 
    ```bash
-   build/bin/llama-quantize --allow-requantize <源模型.gguf> <输出.gguf> Q4_0_ROCMFP4_FAST 32
+   build/hip-gfx1151/bin/llama-quantize --allow-requantize <源模型.gguf> <输出.gguf> Q4_0_ROCMFP4_FAST 32
    ```
 
 3. **推理冒烟测试**：
 
    ```bash
-   build/bin/strix-server -m <量化后模型.gguf> --port 8080
+   build/hip-gfx1151/bin/strix-server -m <量化后模型.gguf> --port 8080
    # 发一条基本请求，确认能正常生成
    ```
 

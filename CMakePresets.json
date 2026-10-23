@@ -1,95 +1,69 @@
 {
-  "version": 4,
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
   "configurePresets": [
     {
-        "name":  "base",
-        "hidden": true,
-        "generator":   "Ninja",
-        "binaryDir":   "${sourceDir}/build-${presetName}",
-        "cacheVariables": {
-            "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-            "CMAKE_INSTALL_RPATH": "$ORIGIN;$ORIGIN/.."
-        }
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "LLAMA_CURL": "OFF"
+      }
     },
     {
-        "name": "sycl-base",
-        "hidden": true,
-        "generator": "Ninja",
-        "binaryDir": "${sourceDir}/build-${presetName}",
-        "cacheVariables": {
-            "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-            "CMAKE_CXX_COMPILER": "icx",
-            "CMAKE_C_COMPILER": "cl",
-            "GGML_SYCL": "ON",
-            "CMAKE_INSTALL_RPATH": "$ORIGIN;$ORIGIN/.."
-        }
-    },
-    { "name": "debug",    "hidden": true, "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" } },
-    { "name": "release",  "hidden": true, "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" } },
-    { "name": "reldbg",   "hidden": true, "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" } },
-    { "name": "static",   "hidden": true, "cacheVariables": { "GGML_STATIC":      "ON" } },
-    { "name": "sycl_f16", "hidden": true, "cacheVariables": { "GGML_SYCL_F16":    "ON" } },
-    { "name": "vulkan",   "hidden": true, "cacheVariables": { "GGML_VULKAN":      "ON" } },
-
-    {
-        "name": "x64-windows-llvm", "hidden": true,
-        "cacheVariables": {
-            "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/x64-windows-llvm.cmake"
-        }
-    },
-
-    {
-        "name": "arm64-windows-llvm", "hidden": true,
-        "architecture": { "value": "arm64",    "strategy": "external" },
-        "toolset":      { "value": "host=x64", "strategy": "external" },
-        "cacheVariables": {
-            "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/arm64-windows-llvm.cmake"
-        }
-    },
-
-    {
-        "name": "arm64-apple-clang", "hidden": true,
-        "architecture": { "value": "arm64",    "strategy": "external" },
-        "toolset":      { "value": "host=x64", "strategy": "external" },
-        "cacheVariables": {
-            "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/arm64-apple-clang.cmake"
-        }
+      "name": "hip-gfx1151",
+      "displayName": "HIP / gfx1151 (production)",
+      "description": "The only supported production target: ROCm HIP on Strix Halo.",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "GGML_HIP": "ON",
+        "AMDGPU_TARGETS": "gfx1151",
+        "GGML_OPENMP": "OFF",
+        "CMAKE_C_COMPILER": "/usr/bin/gcc",
+        "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+        "CMAKE_PREFIX_PATH": "/opt/rocm;/opt/rocm/core-10.0"
+      }
     },
     {
-        "name": "x64-linux-gcc", "hidden": true,
-        "cacheVariables": {
-            "CMAKE_C_COMPILER": "gcc",
-            "CMAKE_CXX_COMPILER": "g++"
-        }
+      "name": "cpu-check",
+      "displayName": "CPU only (compile check)",
+      "description": "Hosted-runner build: no ROCm, no native tuning. The same preset CI uses.",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "GGML_NATIVE": "OFF",
+        "GGML_CCACHE": "OFF"
+      }
     },
-    { "name": "x64-linux-gcc-debug", "inherits": [ "base", "x64-linux-gcc", "debug" ] },
-    { "name": "x64-linux-gcc-release", "inherits": [ "base", "x64-linux-gcc", "release" ] },
-    { "name": "x64-linux-gcc-reldbg", "inherits": [ "base", "x64-linux-gcc", "reldbg" ] },
-    { "name": "x64-linux-gcc+static-release", "inherits": [ "base", "x64-linux-gcc", "release", "static" ] },
-
-    { "name": "arm64-windows-llvm-debug", "inherits": [ "base", "arm64-windows-llvm", "debug" ] },
-    { "name": "arm64-windows-llvm-release", "inherits": [ "base", "arm64-windows-llvm", "reldbg" ] },
-    { "name": "arm64-windows-llvm+static-release", "inherits": [ "base", "arm64-windows-llvm", "reldbg", "static" ] },
-
-    { "name": "arm64-apple-clang-debug", "inherits": [ "base", "arm64-apple-clang", "debug" ] },
-    { "name": "arm64-apple-clang-release", "inherits": [ "base", "arm64-apple-clang", "reldbg" ] },
-    { "name": "arm64-apple-clang+static-release", "inherits": [ "base", "arm64-apple-clang",  "reldbg", "static" ] },
-
-    { "name": "x64-windows-llvm-debug", "inherits": [ "base", "x64-windows-llvm", "debug" ] },
-    { "name": "x64-windows-llvm-release", "inherits": [ "base", "x64-windows-llvm", "release" ] },
-    { "name": "x64-windows-llvm-reldbg", "inherits": [ "base", "x64-windows-llvm", "reldbg" ] },
-    { "name": "x64-windows-llvm+static-release", "inherits": [ "base", "x64-windows-llvm", "reldbg", "static" ] },
-
-    { "name": "x64-windows-msvc-debug", "inherits": [ "base", "debug" ] },
-    { "name": "x64-windows-msvc-release", "inherits": [ "base", "reldbg" ] },
-    { "name": "x64-windows-msvc+static-release", "inherits": [ "base", "reldbg", "static" ] },
-
-    { "name": "x64-windows-sycl-debug", "inherits": [ "sycl-base", "debug" ] },
-    { "name": "x64-windows-sycl-debug-f16", "inherits": [ "sycl-base", "debug", "sycl_f16" ] },
-    { "name": "x64-windows-sycl-release", "inherits": [ "sycl-base", "release" ] },
-    { "name": "x64-windows-sycl-release-f16", "inherits": [ "sycl-base", "release", "sycl_f16" ] },
-
-    { "name": "x64-windows-vulkan-debug", "inherits": [ "base", "vulkan", "debug" ] },
-    { "name": "x64-windows-vulkan-release", "inherits": [ "base", "vulkan", "release" ] }
+    {
+      "name": "sanitizer",
+      "displayName": "CPU + ASan/UBSan",
+      "description": "Debug CPU build with sanitizers and tests enabled.",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "GGML_SANITIZE_ADDRESS": "ON",
+        "GGML_SANITIZE_UNDEFINED": "ON",
+        "LLAMA_BUILD_TESTS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "hip-gfx1151",
+      "configurePreset": "hip-gfx1151",
+      "targets": ["strix", "strix-server", "llama-quantize", "llama-bench"]
+    },
+    {
+      "name": "cpu-check",
+      "configurePreset": "cpu-check",
+      "targets": ["strix", "strix-server", "llama-cli", "llama-quantize", "llama-bench"]
+    }
   ]
 }

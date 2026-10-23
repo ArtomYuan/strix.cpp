@@ -56,13 +56,11 @@ strix.cpp is an independently maintained branch of llama.cpp. It does three thin
 
 ```bash
 export ROCM_PATH=/opt/rocm PATH=/opt/rocm/bin:$PATH
-cmake -B build -DGGML_HIP=ON -DCMAKE_BUILD_TYPE=Release -DAMDGPU_TARGETS=gfx1151 \
-  -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
-  -DCMAKE_PREFIX_PATH=/opt/rocm/core-10.0 -DLLAMA_CURL=OFF -DGGML_OPENMP=OFF
-cmake --build build -j $(nproc) --target strix-server llama-quantize llama-bench
+cmake --preset hip-gfx1151
+cmake --build --preset hip-gfx1151
 ```
 
-Artifacts land in `build/bin/`. The executable is `strix-server`; `build/bin/llama-server` is a compatibility symlink pointing at it, so existing scripts keep working.
+Artifacts land in `build/hip-gfx1151/bin/`. The executable is `strix-server`; `build/hip-gfx1151/bin/llama-server` is a compatibility symlink pointing at it, so existing scripts keep working.
 
 ### One-click install
 
@@ -79,7 +77,7 @@ After installing, the binary is at `<install dir>/bin/strix-server` and the runt
 ### Run
 
 ```bash
-build/bin/strix-server -m <model.gguf> --port 8080
+build/hip-gfx1151/bin/strix-server -m <model.gguf> --port 8080
 ```
 
 OpenAI-compatible API (under `/v1` by default). Add `--special` for vision and grounding models; plain text models do not need it.
@@ -100,7 +98,7 @@ ExecStart=/path/to/engine/bin/strix-server --special -m /path/to/model.gguf --po
 When a model ships `nextn` layers, speculative decoding is available: one pass over the weights, several tokens out, past the single-stream bandwidth ceiling.
 
 ```bash
-build/bin/strix-server -m <model.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
+build/hip-gfx1151/bin/strix-server -m <model.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
 ```
 
 With the same prompt and seed, output is **byte-identical** to a run with MTP off. The gain depends entirely on draft acceptance, and it varies a lot:

@@ -23,12 +23,14 @@ endif()
 message(STATUS "llama.cpp version: ${LLAMA_VERSION}")
 
 ### strix.cpp release version
-# Independent of LLAMA_VERSION_* above: those track the upstream llama.cpp sync
-# point and must not be bumped for a strix.cpp release (see docs/release.md).
-# Bump STRIX_VERSION for every release; update STRIX_UPSTREAM_BASE to the newest
-# synced upstream commit.
-set(STRIX_VERSION "1.1.0")
-set(STRIX_UPSTREAM_BASE "091b6a7fc")
+# Both values live in files at the repository root, so a release touches
+# version.txt and an upstream sync touches upstream.txt — not this file.
+# LLAMA_VERSION_* above tracks the upstream llama.cpp sync point and must not be
+# bumped for a strix.cpp release (see docs/release.md).
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" STRIX_VERSION)
+string(STRIP "${STRIX_VERSION}" STRIX_VERSION)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/upstream.txt" STRIX_UPSTREAM_BASE)
+string(STRIP "${STRIX_UPSTREAM_BASE}" STRIX_UPSTREAM_BASE)
 message(STATUS "strix.cpp version: ${STRIX_VERSION} (upstream base ${STRIX_UPSTREAM_BASE})")
 
 #set(CMAKE_WARN_DEPRECATED YES)
@@ -265,6 +267,13 @@ endif()
 
 if (LLAMA_BUILD_APP)
     add_subdirectory(app)
+endif()
+
+# strix.cpp entry point: a thin dispatcher over the tool binaries. Own code lives
+# under strix/ so the upstream tree stays free of new top-level directories;
+# this target only links llama-common-base.
+if (LLAMA_BUILD_COMMON AND LLAMA_BUILD_TOOLS)
+    add_subdirectory(strix)
 endif()
 
 # Standalone libmtmd build without pulling in the rest of the tools/ tree.

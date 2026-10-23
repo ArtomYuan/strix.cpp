@@ -56,13 +56,11 @@ strix.cpp 是 llama.cpp 的独立维护分支。它把三件事做扎实：持�
 
 ```bash
 export ROCM_PATH=/opt/rocm PATH=/opt/rocm/bin:$PATH
-cmake -B build -DGGML_HIP=ON -DCMAKE_BUILD_TYPE=Release -DAMDGPU_TARGETS=gfx1151 \
-  -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
-  -DCMAKE_PREFIX_PATH=/opt/rocm/core-10.0 -DLLAMA_CURL=OFF -DGGML_OPENMP=OFF
-cmake --build build -j $(nproc) --target strix-server llama-quantize llama-bench
+cmake --preset hip-gfx1151
+cmake --build --preset hip-gfx1151
 ```
 
-产物在 `build/bin/`。可执行文件是 `strix-server`；`build/bin/llama-server` 是指向它的兼容软链，旧脚本可以直接用。
+产物在 `build/hip-gfx1151/bin/`。可执行文件是 `strix-server`；`build/hip-gfx1151/bin/llama-server` 是指向它的兼容软链，旧脚本可以直接用。
 
 ### 一键安装
 
@@ -79,7 +77,7 @@ curl -fsSL https://raw.githubusercontent.com/ArtomYuan/strix.cpp/master/install.
 ### 运行
 
 ```bash
-build/bin/strix-server -m <模型.gguf> --port 8080
+build/hip-gfx1151/bin/strix-server -m <模型.gguf> --port 8080
 ```
 
 OpenAI 兼容 API（默认 `/v1`）。视觉/定位模型加 `--special`；纯文本模型不需要。
@@ -100,7 +98,7 @@ ExecStart=/path/to/engine/bin/strix-server --special -m /path/to/model.gguf --po
 模型自带 `nextn` 层时可以开投机解码：一次读权重、产出多个 token，越过单流带宽上限。
 
 ```bash
-build/bin/strix-server -m <模型.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
+build/hip-gfx1151/bin/strix-server -m <模型.gguf> --port 8080 --spec-type draft-mtp --spec-draft-n-max 6
 ```
 
 同提示、同 seed 下，输出与不开启时**逐字一致**。收益完全取决于草稿接受率，实测分散得厉害：
