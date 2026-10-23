@@ -1,0 +1,65 @@
+name: parity
+
+# Template — needs a self-hosted runner with ROCm, a gfx1151 GPU and a local
+# model file exposed as the repository variable PARITY_MODEL.
+# See docs/ci/README.md before moving this into .github/workflows/.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: parity
+  cancel-in-progress: false
+
+jobs:
+  compare:
+    runs-on: [self-hosted, gfx1151]
+    timeout-minutes: 240
+    env:
+      PARITY_MODEL: ${{ vars.PARITY_MODEL }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Guard — model path configured
+        run: |
+          if [ -z "$PARITY_MODEL" ] || [ ! -f "$PARITY_MODEL" ]; then
+            echo "PARITY_MODEL is not set to an existing file; skipping parity."
+            exit 1
+          fi
+
+      - name: Build strix side
+        run: |
+          cmake --preset hip-gfx1151
+          cmake --build --preset hip-gfx1151 -j "$(nproc)"
+
+      - name: Build upstream side at upstream.txt
+        run: |
+          git init build/upstream-src
+          git -C build/upstream-src remote add origin https://github.com/ggml-org/llama.cpp
+          git -C build/upstream-src fetch --depth 1 origin "$(cat upstream.txt)"
+          git -C build/upstream-src checkout FETCH_HEAD
+          cmake -S build/upstream-src -B build/upstream \
+            -DGGML_HIP=ON -DAMDGPU_TARGETS=gfx1151 -DLLAMA_CURL=OFF \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/upstream -j "$(nproc)" --target llama-bench
+
+      - name: Run parity
+        run: |
+          tests/parity/run.sh \
+            --model "$PARITY_MODEL" \
+            --strix build/hip-gfx1151/bin/llama-bench \
+            --upstream build/upstream/bin/llama-bench | tee parity.md
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity
+          path: |
+            parity.md
+            build/parity/strix.jsonl
+            build/parity/upstream.jsonl

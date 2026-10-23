@@ -1,0 +1,8 @@
+{
+  "comment": "Benchmark shapes shared by both sides. The model file and quantization are CLI arguments; this file fixes only the shapes, so a strix run and an upstream run stay comparable.",
+  "cases": [
+    { "id": "pp256_tg128",  "pp": 256,  "tg": 128, "reps": 5 },
+    { "id": "pp2048_tg256", "pp": 2048, "tg": 256, "reps": 3 },
+    { "id": "pp8192_tg128", "pp": 8192, "tg": 128, "reps": 3 }
+  ]
+}

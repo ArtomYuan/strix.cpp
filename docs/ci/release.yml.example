@@ -1,0 +1,69 @@
+name: release
+
+# Template — needs a self-hosted runner with ROCm and a gfx1151 GPU.
+# See docs/ci/README.md before moving this into .github/workflows/.
+#
+# Assets are produced only by this workflow. The repo used to publish releases
+# with no binaries and no checksums; this closes that gap.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to attach assets to (e.g. v1.2.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: [self-hosted, gfx1151]
+    timeout-minutes: 180
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate tag against version.txt
+        run: |
+          if ! [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "tag must look like vX.Y.Z, got: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          want="${RELEASE_TAG#v}"
+          have="$(tr -d '[:space:]' < version.txt)"
+          if [ "$want" != "$have" ]; then
+            echo "version.txt says $have, tag says $want — bump version.txt first" >&2
+            exit 1
+          fi
+
+      - name: Configure and build
+        run: |
+          cmake --preset hip-gfx1151
+          cmake --build --preset hip-gfx1151 -j "$(nproc)"
+
+      - name: Stage, archive, checksum
+        run: |
+          pkg="strix.cpp-${RELEASE_TAG}-linux-x86_64-gfx1151"
+          rm -rf "$pkg" "$pkg.tar.gz" "$pkg.tar.gz.sha256"
+          cmake --install build/hip-gfx1151 --prefix "$pkg"
+          cp LICENSE LICENSE-MIT NOTICE THIRD_PARTY_NOTICES.md README.md \
+             version.txt upstream.txt "$pkg"/
+          tar -czf "$pkg.tar.gz" "$pkg"
+          sha256sum "$pkg.tar.gz" > "$pkg.tar.gz.sha256"
+          ls -l "$pkg.tar.gz" "$pkg.tar.gz.sha256"
+
+      - name: Ensure release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || \
+            gh release create "$RELEASE_TAG" --title "$RELEASE_TAG" --generate-notes
+
+      - name: Upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$RELEASE_TAG" strix.cpp-*.tar.gz strix.cpp-*.sha256 --clobber

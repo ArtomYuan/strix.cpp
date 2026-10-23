@@ -1,0 +1,54 @@
+name: hip
+
+# Template — needs a self-hosted runner with ROCm and a gfx1151 GPU.
+# See docs/ci/README.md before moving this into .github/workflows/.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "ggml/**"
+      - "src/**"
+      - "tools/**"
+      - "common/**"
+      - "strix/**"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "version.txt"
+      - "upstream.txt"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hip-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gfx1151:
+    runs-on: [self-hosted, gfx1151]
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configure
+        run: cmake --preset hip-gfx1151
+
+      - name: Build tools
+        run: cmake --build --preset hip-gfx1151 -j "$(nproc)"
+
+      - name: Build test-backend-ops
+        run: cmake --build build/hip-gfx1151 -j "$(nproc)" --target test-backend-ops
+
+      - name: Version
+        run: build/hip-gfx1151/bin/strix version
+
+      - name: Backend ops — rocmfp4
+        run: build/hip-gfx1151/bin/test-backend-ops -p rocmfp4 -o MUL_MAT
+
+      - name: Backend ops — rocmfpx
+        run: build/hip-gfx1151/bin/test-backend-ops -p rocmfpx -o MUL_MAT
+
+      - name: Backend ops — default MUL_MAT
+        run: build/hip-gfx1151/bin/test-backend-ops -o MUL_MAT
