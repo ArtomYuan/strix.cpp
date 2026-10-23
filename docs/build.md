@@ -201,11 +201,12 @@ To use a specific CCCL version instead of the one bundled with the installed CUD
 
 Note that this also builds the CPU backend by default. On Windows on ARM, MSVC's
 support for the ARM NEON intrinsics used by the CPU backend may be incomplete, so
-a CUDA build produced entirely with MSVC might have a slower CPU backend. If CPU
-performance matters, try following the split build used in our release workflow
-([.github/workflows/release.yml](../.github/workflows/release.yml)): the CPU backend
-is built with clang (`cmake/arm64-windows-llvm.cmake`) and the CUDA backend with MSVC
-(`cmake/arm64-windows-msvc-cuda.cmake`), and the artifacts are merged afterwards.
+A CUDA build produced entirely with MSVC might have a slower CPU backend. If CPU
+performance matters, try the split build: the CPU backend is built with clang
+(`cmake/arm64-windows-llvm.cmake`) and the CUDA backend with MSVC
+(`cmake/arm64-windows-msvc-cuda.cmake`), then the artifacts are merged. This
+repository does not ship the upstream release workflow; build both halves
+locally with those two presets.
 
 ### Non-Native Builds
 

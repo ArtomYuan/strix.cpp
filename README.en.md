@@ -113,6 +113,7 @@ Depth 8 and beyond collapses acceptance to 0.6% — pure overhead, and output no
 
 ## Documentation
 
+- [Full documentation index](docs/README.md): project-owned docs and upstream docs, grouped
 - [Quantization guide](docs/quantization-guide.en.md): family table, how to choose, quantize commands, KV types
 - [Kernel optimization record](docs/development/kernel-optimization.en.md): evidence and reproduction for every tuning change
 - [Install](docs/install.md) · [Multimodal](docs/multimodal.md) · [Model support](docs/models.md) · [Speculative decoding](docs/speculative.md)

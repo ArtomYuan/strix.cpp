@@ -7,7 +7,7 @@ strix.cpp follows semantic versioning for its own releases: `vMAJOR.MINOR.PATCH`
 ## Before tagging
 
 - Add a `CHANGELOG.md` / `CHANGELOG.en.md` section with the version, date, changes, and verification results.
-- Build and smoke-test on gfx1151 (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+- Build and smoke-test on gfx1151 (see [CONTRIBUTING.md](../CONTRIBUTING.md)).
 - Update README/docs/model cards when commands, binary names, or version labels change.
 
 ## Cutting the release

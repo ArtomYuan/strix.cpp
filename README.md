@@ -113,6 +113,7 @@ build/bin/strix-server -m <模型.gguf> --port 8080 --spec-type draft-mtp --spec
 
 ## 文档
 
+- [完整文档索引](docs/README.md)：本库自有文档与上游文档分组
 - [量化指南](docs/quantization-guide.md)：家族表、怎么选、量化命令、KV 类型
 - [内核优化记录](docs/development/kernel-optimization.md)：每项特调的证据与复现
 - [安装](docs/install.md) · [多模态](docs/multimodal.md) · [模型适配](docs/models.md) · [投机解码](docs/speculative.md)
