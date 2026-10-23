@@ -6,10 +6,20 @@
 
 ## 本库自有
 
+**按主题：**
+
+- [架构](architecture.md) — 上游层与自有层的边界、一次推理的数据流（[English](architecture.en.md)）
+- [命令行](cli.md) — `strix` 七个命令、转发机制、`diagnose` 输出（[English](cli.en.md)）
+- [构建 preset](build-presets.md) — 四个 preset、产物布局、常见错误（[English](build-presets.en.md)）
 - [量化指南](quantization-guide.md) — ROCmFP4 / ROCmFPX 家族表、档位选择、量化命令、KV 类型（[English](quantization-guide.en.md)）
-- [内核优化记录](development/kernel-optimization.md) — 每项 Strix Halo 特调的证据、复现方法与回退面（[English](development/kernel-optimization.en.md)）
+- [基准](benchmarks.md) — 三类问题、parity 管线、判读规则（[English](benchmarks.en.md)）
+- [测试](testing.md) — 四层测试、验收基线、CI 现状与缺口（中文）
+
+**流程与记录：**
+
 - [发布流程](release.md) — 版本号口径、tag 与 Release 规范、CI 现状
 - [上游同步批次记录](upstream-sync.md) — 每次合并的窗口、冲突面、跳过项与验证数字（中文）
+- [内核优化记录](development/kernel-optimization.md) — 每项 Strix Halo 特调的证据、复现方法与回退面（[English](development/kernel-optimization.en.md)）
 - [路线图](roadmap.md) — 接下来要做什么，以及已知边界（[English](roadmap.en.md)）
 - [CI 模板](ci/README.md) — 需要 gfx1151 的三个 workflow 与启用步骤
 - [Parity 基准](../tests/parity/README.md) — 同量化不退化与同 BPW 跨格式的对比方法
