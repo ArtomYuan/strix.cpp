@@ -2,7 +2,7 @@
 
 **A llama.cpp engine tuned for the AI MAX+ 395, with native ROCmFPX quantization support.**
 
-strix.cpp is an independently maintained branch of llama.cpp. It does three things properly: it keeps in step with upstream; it supports the ROCmFPX quantization family natively (formats upstream cannot load); and it folds in multimodal vision and grounding. What it is really built for, though, is kernel-level tuning on this one chip — Strix Halo (gfx1151), up to 128 GiB of unified memory: same model, same quantization, attention kernels more than 20% faster.
+strix.cpp is a **branch of llama.cpp**, not a standalone engine: upstream code is the bulk of the tree, and this project's changes concentrate on the ROCmFP quantization family, multimodal vision, and Strix Halo kernel tuning. Keeping in step with upstream is the primary commitment. It does three things properly: it keeps in step with upstream; it supports the ROCmFPX quantization family natively (formats upstream cannot load); and it folds in multimodal vision and grounding. What it is really built for, though, is kernel-level tuning on this one chip — Strix Halo (gfx1151), up to 128 GiB of unified memory: same model, same quantization, attention kernels more than 20% faster.
 
 [中文](README.md) · [Changelog](CHANGELOG.md) · [Roadmap](docs/roadmap.md) · [Quantization guide](docs/quantization-guide.en.md)
 

@@ -11,6 +11,8 @@
 - [发布流程](release.md) — 版本号口径、tag 与 Release 规范、CI 现状
 - [上游同步批次记录](upstream-sync.md) — 每次合并的窗口、冲突面、跳过项与验证数字（中文）
 - [路线图](roadmap.md) — 接下来要做什么，以及已知边界（[English](roadmap.en.md)）
+- [CI 模板](ci/README.md) — 需要 gfx1151 的三个 workflow 与启用步骤
+- [Parity 基准](../tests/parity/README.md) — 同量化不退化与同 BPW 跨格式的对比方法
 - [安装](install.md) — 从源码构建与安装后的目录布局
 
 ## 上游文档（本库有改写）

@@ -2,7 +2,7 @@
 
 **为 AI MAX+ 395 深度特调的 llama.cpp 引擎，原生支持 ROCmFPX 量化。**
 
-strix.cpp 是 llama.cpp 的独立维护分支。它把三件事做扎实：持续同步官方上游；原生支持 ROCmFPX 量化（上游加载不了的格式）；合并多模态视觉与定位能力。而它真正的立身之本，是在这颗芯片——Strix Halo（gfx1151）、最多 128 GiB 统一内存——上做内核级特调：同样的模型、同样的量化，注意力内核快两成以上。
+strix.cpp 是 llama.cpp 的**分支**，不是独立引擎：上游代码是主体，本库的改动集中在 ROCmFP 量化族、多模态视觉与 Strix Halo 内核特调，与上游保持同步是首要承诺。它把三件事做扎实：持续同步官方上游；原生支持 ROCmFPX 量化（上游加载不了的格式）；合并多模态视觉与定位能力。而它真正的立身之本，是在这颗芯片——Strix Halo（gfx1151）、最多 128 GiB 统一内存——上做内核级特调：同样的模型、同样的量化，注意力内核快两成以上。
 
 [English](README.en.md) · [更新记录](CHANGELOG.md) · [路线图](docs/roadmap.md) · [量化指南](docs/quantization-guide.md)
 

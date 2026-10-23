@@ -8,11 +8,11 @@
 
 | 项 | 值 |
 |:--|:--|
-| 上游基线 commit | `091b6a7fc` |
+| 上游基线 commit | `091b6a7fc`（唯一源：`upstream.txt`） |
 | 基线日期 | 2026-10-14 |
 | 上次 merge commit | `b5a7b6118` |
-| 本库发布版本 | 见 `CMakeLists.txt` 的 `STRIX_VERSION` |
-| 构建可读版本 | `strix-server --version` 的 `upstream base` 一行 |
+| 本库发布版本 | `version.txt`（唯一源） |
+| 构建可读版本 | `strix version` 与 `strix-server --version` 的 `upstream base` 一行 |
 
 ## 批次表
 
