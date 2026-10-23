@@ -43,6 +43,7 @@
 - **CI workflows**：上游 `.github/workflows/*` 全部保持删除态；合并窗口里新增的 workflow 一并删除。本库只保留 `build.yml` 与 `docs.yml`。
 - **非 ROCm 后端**：`ggml-hexagon`、`ggml-opencl`、`ggml-vulkan`、`ggml-sycl`、`ggml-musa` 等随上游合入源码，但不构建、不验证；冲突处理见 CONTRIBUTING 的三档分级。
 - **`tools/ui`**：随上游合入，本库不构建 UI。
+- **自有资产**：`ggml/rocmfp4/`、`ggml/rocmfpx/`、`template-instances/` 里 13 个自有实例，以及 `ggml-cuda` 下 30 个被改写的上游文件。完整清单与处理原则见 [CONTRIBUTING 的「自有资产清单」](../CONTRIBUTING.md#自有资产清单)。
 
 ## 回滚
 

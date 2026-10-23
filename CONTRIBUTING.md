@@ -108,6 +108,14 @@ PR 提交前请自查：
 2. **核对改动点：`ggml/src/ggml-hexagon/`。** 本库只改过 `htp/act-ops.c` 与 `htp/htp-tensor.c`，其余随上游。
 3. **透明合入：其余非 ROCm 后端。** 以 2026-10 基线为例，上游独有文件 39 个：hexagon 21、opencl 8、cuda 4、zdnn 4、metal 1、rpc 1（数字随同步变化，按下面的命令重新归类）。这些后端不参与构建，合入后只做冲突归因，不做功能验证。
 
+### 自有资产清单
+
+同步时这些路径一律保留本库内容（冲突时取本地），不做上游覆盖：
+
+- **`ggml/rocmfp4/`（6 个文件）、`ggml/rocmfpx/`（8 个文件）**：上游不存在这两个目录，所以放在 `ggml/` 下本身不产生合并冲突。留着是因为 `ggml-base` 直接编译 `rocmfp4.c`，且上游源文件里有 17 处按相对路径 include 这两个头文件——搬出去要改全部 17 处，冲突面反而变大。
+- **`ggml/src/ggml-cuda/template-instances/` 里 13 个自有实例**：7 个 `fattn-vec-instance-*`（q4_0_rocmfp4、q4_0_rocmfp4_fast、q3_0/q6_0/q8_0_rocmfpx、turbo3_0、turbo4_0）加 6 个 `mmq-instance-*`（q2_0/q3_0_rocmfpx、q4_0_rocmfp4、q4_0_rocmfp4_fast、q6_0/q8_0_rocmfpx）。上游同目录有 121 个文件、这 13 个不在其中；`mmq-instance-*` 被 `file(GLOB "template-instances/mmq*.cu")` 自动收，移动会破坏 GLOB。
+- **`ggml/src/ggml-cuda/` 下 30 个被改写的上游文件**：`mmq.cu`、`mmq.cuh`、`mmq-config-{ampere,blackwell,cdna,rdna2,rdna3,rdna3-5,rdna4}.cuh`、`mmq-load-tiles.cuh`、`mmq-vec-dot.cuh`、`mmvq.cu`、`fattn.cu`、`fattn-vec.cuh`、`fattn-common.cuh`、`fattn-mma-f16.cuh`、`convert.cu`、`dequantize.cuh`、`vecdotq.cuh`、`common.cuh`、`cpy-utils.cuh`、`getrows.cu`、`set-rows.cu`、`ggml-cuda.cu`、`mmf.cu`、`mmf.cuh`、`mmid.cu`、`mmid.cuh`、`ssm-conv.cu` 与 `CMakeLists.txt`。这些是横切改动（新类型要接入所有算子），不整体取一侧，按上面的三档分级逐文件判断。
+
 ```bash
 # 本次同步的改动面，按目录归类
 git diff --stat upstream/master...HEAD -- ggml/src

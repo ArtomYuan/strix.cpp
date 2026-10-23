@@ -1,5 +1,9 @@
 # ROCmFPx Experimental Formats
 
+> **Project-owned directory.** `ggml/rocmfpx/` does not exist upstream; it is
+> compiled by `ggml-base` and included by relative path from upstream sources.
+> Keep it in place when syncing upstream. See CONTRIBUTING.md, "自有资产清单".
+>
 > Historical design notes. Current status and usage: [docs/quantization-guide.md](../../docs/quantization-guide.md).
 
 This folder contains the reference layer for the proposed ROCmFP3, ROCmFP6, and

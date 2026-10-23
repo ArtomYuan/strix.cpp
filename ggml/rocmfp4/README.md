@@ -1,5 +1,11 @@
 # ROCmFP4
 
+> **Project-owned directory.** `ggml/rocmfp4/` does not exist upstream. It sits
+> under `ggml/` because `ggml-base` compiles `rocmfp4.c` and upstream sources
+> include `rocmfp4.h` by relative path (17 include sites in total). Keep it in
+> place when syncing upstream: moving it would mean editing all of them for no
+> reduction in conflict surface. See CONTRIBUTING.md, "自有资产清单".
+>
 > Historical design notes. Current status and usage: [docs/quantization-guide.md](../../docs/quantization-guide.md). Some scripts referenced below are no longer in this tree; verify before running.
 
 ROCmFP4 is the `Q4_0_ROCMFP4` GGUF tensor type for Strix Halo.
