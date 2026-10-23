@@ -8,6 +8,9 @@ char const * LLAMA_COMMIT = "@LLAMA_BUILD_COMMIT@";
 char const * LLAMA_COMPILER = "@BUILD_COMPILER@";
 char const * LLAMA_BUILD_TARGET = "@BUILD_TARGET@";
 
+char const * STRIX_RELEASE_VERSION = "@STRIX_VERSION@";
+char const * STRIX_UPSTREAM_BASE   = "@STRIX_UPSTREAM_BASE@";
+
 int llama_build_number(void) {
     return LLAMA_BUILD_NUMBER;
 }
@@ -25,11 +28,13 @@ const char * llama_build_target(void) {
 }
 
 const char * llama_build_info(void) {
-    static std::string s = "b" + std::to_string(LLAMA_BUILD_NUMBER) + "-" + LLAMA_COMMIT;
+    static std::string s = "b" + std::to_string(LLAMA_BUILD_NUMBER) + "-" + LLAMA_COMMIT
+                         + "-strix" + STRIX_RELEASE_VERSION;
     return s.c_str();
 }
 
 void llama_print_build_info(const char * llama_version, FILE * stream) {
     fprintf(stream, "version: %s (build %d, commit %s)\n", llama_version, llama_build_number(), llama_commit());
+    fprintf(stream, "strix.cpp: %s (upstream base %s)\n", STRIX_RELEASE_VERSION, STRIX_UPSTREAM_BASE);
     fprintf(stream, "built with %s for %s\n", llama_compiler(), llama_build_target());
 }

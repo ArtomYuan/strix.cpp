@@ -22,6 +22,15 @@ endif()
 
 message(STATUS "llama.cpp version: ${LLAMA_VERSION}")
 
+### strix.cpp release version
+# Independent of LLAMA_VERSION_* above: those track the upstream llama.cpp sync
+# point and must not be bumped for a strix.cpp release (see docs/release.md).
+# Bump STRIX_VERSION for every release; update STRIX_UPSTREAM_BASE to the newest
+# synced upstream commit.
+set(STRIX_VERSION "1.1.0")
+set(STRIX_UPSTREAM_BASE "091b6a7fc")
+message(STATUS "strix.cpp version: ${STRIX_VERSION} (upstream base ${STRIX_UPSTREAM_BASE})")
+
 #set(CMAKE_WARN_DEPRECATED YES)
 set(CMAKE_WARN_UNUSED_CLI YES)
 
