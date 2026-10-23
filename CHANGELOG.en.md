@@ -8,6 +8,13 @@
 
 - **One-click installer**: `install.sh` clones, builds, and installs into `strix.cpp/` under the current directory (source in `strix.cpp/src/`, binary in `strix.cpp/bin/`, runtime libraries in `strix.cpp/lib/`); `scripts/install.sh` performs the local build and install and defaults to `strix.cpp/` under the caller's directory, with `INSTALL_DIR` as an override. Installed binaries carry a `$ORIGIN/../lib` RUNPATH.
 
+### Changed
+
+- **Repository hygiene**: removed upstream-only configuration leftovers — `.pi/gg/SYSTEM.md` (it told agents not to read `AGENTS.md`, contradicting this repository's rules), the ggml-org team map in `CODEOWNERS`, and the unreferenced `.github/actions/`, `.github/labeler.yml` and `ci/`; `Makefile` and `pyproject.toml` now point at this repository.
+- **Version visibility**: `CMakeLists.txt` gains `STRIX_VERSION` / `STRIX_UPSTREAM_BASE` (separate from `LLAMA_VERSION_*`); `--version` and `/props`'s `build_info` now report both the strix.cpp release version and the upstream sync base.
+- **Docs**: added `docs/README.md` as the documentation index; fixed the `docs/release.md` dead link and three references to removed upstream workflows.
+- **CI**: added two minimal workflows — `build` (CPU configure + compile check) and `docs` (relative link check). The upstream workflow set stays removed.
+
 ## [v1.1.0] (2026-10-19)
 
 ### Changed

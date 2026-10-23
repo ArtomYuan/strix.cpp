@@ -7,6 +7,7 @@ strix.cpp follows semantic versioning for its own releases: `vMAJOR.MINOR.PATCH`
 ## Before tagging
 
 - Add a `CHANGELOG.md` / `CHANGELOG.en.md` section with the version, date, changes, and verification results.
+- Bump `STRIX_VERSION` in the root `CMakeLists.txt` and set `STRIX_UPSTREAM_BASE` to the newest synced upstream commit. These feed `--version` and `/props`.
 - Build and smoke-test on gfx1151 (see [CONTRIBUTING.md](../CONTRIBUTING.md)).
 - Update README/docs/model cards when commands, binary names, or version labels change.
 
@@ -14,7 +15,7 @@ strix.cpp follows semantic versioning for its own releases: `vMAJOR.MINOR.PATCH`
 
 1. Commit the release notes with `chore(release): vX.Y.Z`.
 2. Create an annotated tag: `git tag -a vX.Y.Z -m "vX.Y.Z"`.
-3. Push `master` and the tag. This repository has no GitHub Actions workflows; maintainers push with a token-authorized remote.
+3. Push `master` and the tag. CI runs two workflows: `build` (CPU configure + compile of `strix-server`, `llama-cli`, `llama-quantize`, plus a `--version` check) and `docs` (relative markdown link check). The upstream workflow set is still not restored; maintainers push with a token-authorized remote.
 4. Create a GitHub Release titled `vX.Y.Z (YYYY-MM-DD)` with bilingual notes.
 
 The upstream `scripts/release.sh` and the `make-release` workflow are **not used** by this fork; they refer to upstream automation that is not present here.

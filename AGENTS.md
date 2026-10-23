@@ -8,7 +8,7 @@ strix.cpp is a fork of llama.cpp maintained by ArtomYuan. The upstream `ggml-org
 - AI-assisted work is allowed when the human contributor understands the change, can debug it, and can maintain it.
 - Disclose meaningful AI assistance in the pull request.
 - Do not open automated or mass-generated PRs without human review.
-- Build and test locally on gfx1151; this repository does not run the upstream CI workflows.
+- Build and test locally on gfx1151; this repository runs only the two minimal workflows in `.github/workflows/` (`build`, `docs`). The upstream workflow set is not restored.
 
 ## Scope
 

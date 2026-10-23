@@ -1,0 +1,19 @@
+# Relative markdown links kept verbatim from upstream llama.cpp.
+#
+# These targets do not resolve on disk because upstream writes them relative to
+# the repository root without a leading "../" (or points at files upstream has
+# since removed). They are upstream leftovers: fix them upstream, do not rewrite
+# them here, so that upstream syncs stay conflict-free.
+#
+# Format: <source path glob>\t<target glob>   (tab separated)
+# Used by scripts/check-md-links.py.
+
+docs/autoparser.md	common/*
+docs/autoparser.md	tests/*
+docs/development/HOWTO-add-model.md	tools/mtmd/debug/mtmd-debug.cpp
+grammars/README.md	../examples/gbnf-validator/gbnf-validator.cpp
+tools/server/README.md	../embedding
+tools/server/README.md	chat.mjs
+tools/server/README.md	chat.sh
+tools/server/README.md	../ui/src/lib/constants/settings-keys.ts
+tools/server/README-dev.md	../ui/docs/

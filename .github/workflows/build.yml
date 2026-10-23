@@ -1,0 +1,49 @@
+name: build
+
+# Minimal compile check. This fork targets gfx1151/ROCm, which GitHub-hosted
+# runners do not have; the CPU backend still exercises the shared code paths
+# (ggml-base, rocmfp4/rocmfpx reference implementations, server, CLI).
+# The upstream workflow set is intentionally not restored.
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  pull_request:
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cpu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure (CPU backend only)
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DLLAMA_CURL=OFF
+          -DGGML_NATIVE=OFF
+          -DGGML_CCACHE=OFF
+
+      - name: Build strix-server, llama-cli, llama-quantize
+        run: cmake --build build -j "$(nproc)" --target strix-server llama-cli llama-quantize
+
+      - name: Check that the build reports the strix.cpp version
+        run: |
+          build/bin/llama-cli --version 2>&1 | tee version.txt
+          grep -q "strix.cpp:" version.txt
+          grep -q "upstream base" version.txt
