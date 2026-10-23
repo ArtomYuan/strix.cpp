@@ -15,7 +15,7 @@
 
 ## 开发环境
 
-本项目只支持 ROCm HIP 后端（无 Vulkan/CUDA），构建目标为 gfx1151。前置要求：
+本库的构建目标只有 ROCm HIP（gfx1151）。上游的其他后端（Vulkan、CUDA、SYCL、OpenCL、Hexagon 等）源码完整保留在 `ggml/src/` 下，但默认全部关闭，构建命令只显式打开 `GGML_HIP`——保留与裁剪的取舍见「[上游同步](#上游同步)」。前置要求：
 
 - ROCm 10.0.0（安装于 `/opt/rocm`）
 - gcc / g++、cmake（≥ 3.14）、git
@@ -74,7 +74,7 @@ PR 提交前请自查：
 
 ## 测试
 
-本库**没有 CI**（官方 CI 矩阵已移除），本地构建验证是主要手段。改动提交前至少完成：
+本库只有两个最小 workflow：`.github/workflows/build.yml`（CPU 编译检查）与 `docs.yml`（文档相对链接检查）。官方 CI 矩阵已移除，本地 gfx1151 构建验证仍是主要手段。改动提交前至少完成：
 
 1. **构建通过**：上面的 cmake 构建命令无错误
 2. **量化验证**（涉及量化代码时）：
@@ -91,6 +91,41 @@ PR 提交前请自查：
    ```
 
 4. **内核路径改动**：另行完成 `test-backend-ops`（MUL_MAT 按类型过滤）与计数器级复核——完整验证链与复现命令见 [docs/development/kernel-optimization.md](docs/development/kernel-optimization.md)（内核优化记录）。
+
+## 上游同步
+
+本库跟踪官方 `ggml-org/llama.cpp`，当前同步基线见 `CHANGELOG.md` 最近一条同步记录（2026-10 为 `091b6a7fc`）。同步是独立工作：用 `sync/upstream-YYYYMMDD` 分支，不夹带功能改动。
+
+### 边界原则
+
+- **保留上游全部后端目录，不裁剪。** `ggml/src/` 下的 18 个后端子目录（`ggml-cuda`、`ggml-vulkan`、`ggml-sycl`、`ggml-opencl`、`ggml-hexagon` 等）与上游保持一致。裁剪会在每次同步时制造 `deleted by us` 冲突，成本永久化。
+- **构建只开 HIP。** `ggml_add_backend()` 用 `if (GGML_<BACKEND>)` 守卫，未启用的后端连 `add_subdirectory` 都不执行，不产生编译成本；默认值全部 OFF，构建命令只传 `-DGGML_HIP=ON`。
+- **`LLAMA_VERSION_*` 不因本库发版而改动。** 它表示上游同步点；strix.cpp 的发布版本在 `STRIX_VERSION`。
+
+### 冲突分级
+
+按改动落点分三档处理，不要一视同仁。
+
+1. **逐文件核对：`ggml/src/ggml-cuda/`。** HIP 后端是薄壳，ROCm kernel 全部复用这个目录。本库在此处有自有资产：12 个 `template-instances/`（fattn-vec 与 mmq 的 q2/q3/q6/q8 rocmfpx、q4_0_rocmfp4、q4_0_rocmfp4_fast、turbo3_0、turbo4_0），以及 `rocmfp4_hip.cu`、`rocmfp4_hip_codebook.cuh`、`rocmfp4_hip_scale.cuh`。上游对该目录的每处改动都要人工判断是否影响这些文件。
+2. **核对改动点：`ggml/src/ggml-hexagon/`。** 本库只改过 `htp/act-ops.c` 与 `htp/htp-tensor.c`，其余随上游。
+3. **透明合入：其余非 ROCm 后端。** 以 2026-10 基线为例，上游独有文件 39 个：hexagon 21、opencl 8、cuda 4、zdnn 4、metal 1、rpc 1（数字随同步变化，按下面的命令重新归类）。这些后端不参与构建，合入后只做冲突归因，不做功能验证。
+
+```bash
+# 本次同步的改动面，按目录归类
+git diff --stat upstream/master...HEAD -- ggml/src
+# 必须逐文件看的两个目录
+git diff --name-only upstream/master...HEAD -- ggml/src/ggml-cuda ggml/src/ggml-hexagon
+```
+
+### 验收
+
+- `test-backend-ops -p rocmfp4` 24/24、`-p rocmfpx` 61/61、默认 MUL_MAT 2534/2534（数字以 `CHANGELOG.md` 上一版记录为准）
+- gfx1151 HIP 全量构建无错误
+- `strix-server --version` 的 `upstream base` 与实际合并的提交一致
+
+### 回滚点
+
+merge 之前打 tag `pre-sync-YYYYMMDD`。同步分支只做同步，功能改动另开分支。
 
 ## 沟通
 

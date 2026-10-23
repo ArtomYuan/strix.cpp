@@ -20,6 +20,8 @@ strix.cpp follows semantic versioning for its own releases: `vMAJOR.MINOR.PATCH`
 
 The upstream `scripts/release.sh` and the `make-release` workflow are **not used** by this fork; they refer to upstream automation that is not present here.
 
+Upstream sync (merge strategy, conflict tiers, acceptance baseline) is documented in [CONTRIBUTING.md](../CONTRIBUTING.md#上游同步).
+
 ## Compatibility
 
 - `strix-server` is the primary server binary. Builds and installs also provide `llama-server` as a compatibility symlink.
