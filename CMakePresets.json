@@ -27,7 +27,8 @@
         "GGML_OPENMP": "OFF",
         "CMAKE_C_COMPILER": "/usr/bin/gcc",
         "CMAKE_CXX_COMPILER": "/usr/bin/g++",
-        "CMAKE_PREFIX_PATH": "/opt/rocm;/opt/rocm/core-10.0"
+        "CMAKE_PREFIX_PATH": "/opt/rocm;/opt/rocm/core-10.0",
+        "CMAKE_INSTALL_RPATH": "$ORIGIN/../lib"
       }
     },
     {
