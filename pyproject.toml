@@ -1,3 +1,5 @@
+# Python conversion scripts inherited from upstream llama.cpp (MIT).
+# See THIRD_PARTY_NOTICES.md for the license split.
 [project]
 name = "llama-cpp-scripts"
 description = "Scripts that ship with llama.cpp"
@@ -22,8 +24,7 @@ classifiers = [
 ]
 
 [project.urls]
-homepage = "https://ggml.ai"
-repository = "https://github.com/ggml-org/llama.cpp"
+repository = "https://github.com/ArtomYuan/strix.cpp"
 
 [project.scripts]
 llama-convert-hf-to-gguf = "convert_hf_to_gguf:main"
